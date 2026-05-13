@@ -24,8 +24,7 @@ from src.registration import register_ct_to_mri
 from src.segmentation import segment_electrodes, correct_brain_shift
 from src.labeling import (
     normalize_to_mni,
-    load_brodmann_atlas,
-    lookup_brodmann,
+    lookup_brodmann_surface,
     compute_euclidean_error,
     export_report,
 )
@@ -45,7 +44,28 @@ def parse_args() -> argparse.Namespace:
                         help="Save a 3D render to outputs/figures/")
     parser.add_argument("--validate", default=None,
                         help="Path to ground-truth JSON for error validation")
+    parser.add_argument("--subject-dir", default=None,
+                        help="FreeSurfer subject directory (contains surf/, mri/). "
+                             "Required for pial surface loading and MNI normalization.")
     return parser.parse_args()
+
+
+def _parse_talairach_xfm(xfm_path: Path) -> np.ndarray:
+    """Parse a FreeSurfer talairach.xfm into a 4x4 affine (tkRAS → MNI)."""
+    lines = Path(xfm_path).read_text().splitlines()
+    rows = []
+    capture = False
+    for line in lines:
+        if "Linear_Transform" in line:
+            capture = True
+            continue
+        if capture:
+            rows.append(list(map(float, line.strip().rstrip(";").split())))
+            if len(rows) == 3:
+                break
+    M = np.eye(4)
+    M[:3, :] = rows
+    return M
 
 
 def load_ground_truth(path: str) -> list[dict]:
@@ -90,21 +110,43 @@ def run_pipeline(args: argparse.Namespace) -> None:
         print("[ERROR] No electrodes detected. Check HU threshold or CT quality.")
         sys.exit(1)
 
-    # Pial surface: placeholder — replace with actual surface extraction via MNE/FreeSurfer
-    # e.g., mne.read_surface('lh.pial') returns (vertices, faces)
-    pial_vertices = np.zeros((1, 3))  # TODO: load real pial surface
-    pial_faces    = None
+    # Pial surface: combine left + right hemispheres from FreeSurfer output
+    import mne
+    import nibabel as _nib
+    if not args.subject_dir:
+        print("[ERROR] --subject-dir is required. Point it to the FreeSurfer subject folder.")
+        sys.exit(1)
+    subj_dir = Path(args.subject_dir)
+    lh_verts, lh_faces = mne.read_surface(str(subj_dir / "surf" / "lh.pial"))
+    rh_verts, rh_faces = mne.read_surface(str(subj_dir / "surf" / "rh.pial"))
+    rh_faces_offset = rh_faces + len(lh_verts)
+    pial_vertices = np.vstack([lh_verts, rh_verts])
+    pial_faces    = np.vstack([lh_faces, rh_faces_offset])
+    print(f"Pial surface loaded: {len(pial_vertices)} vertices")
+
+    # Electrode centroids are in scanner RAS (NIfTI affine space).
+    # Pial surface vertices are in FreeSurfer tkRAS. Convert before snapping.
+    t1_mgz = _nib.load(str(subj_dir / "mri" / "T1.mgz"))
+    scanner_to_tkr = t1_mgz.header.get_vox2ras_tkr() @ np.linalg.inv(t1_mgz.header.get_vox2ras())
+    for e in electrodes:
+        c = np.append(e["centroid_mm"], 1.0)
+        e["centroid_mm"] = (scanner_to_tkr @ c)[:3]
 
     electrodes = correct_brain_shift(electrodes, pial_vertices)
 
     # ── Phase 3: Labeling & Atlas ─────────────────────────────────────────────
     print("\n=== Phase 3: Anatomical Labeling ===")
-    # MNI normalization: identity placeholder — replace with ANTs/dipy nonlinear warp
-    patient_to_mni = np.eye(4)  # TODO: compute actual MNI warp
+    # MNI normalization via FreeSurfer talairach.xfm (tkRAS → MNI Talairach)
+    patient_to_mni = _parse_talairach_xfm(subj_dir / "mri" / "transforms" / "talairach.xfm")
     electrodes = normalize_to_mni(electrodes, patient_to_mni)
 
-    atlas_img  = load_brodmann_atlas()
-    electrodes = lookup_brodmann(electrodes, atlas_img)
+    electrodes = lookup_brodmann_surface(
+        electrodes,
+        pial_vertices,
+        lh_annot_path=str(subj_dir / "label" / "lh.BA_exvivo.annot"),
+        rh_annot_path=str(subj_dir / "label" / "rh.BA_exvivo.annot"),
+        n_lh_vertices=len(lh_verts),
+    )
 
     for e in electrodes:
         print(f"  Electrode {e['id']:>2d} | "

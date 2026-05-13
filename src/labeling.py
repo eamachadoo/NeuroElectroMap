@@ -114,6 +114,53 @@ def lookup_brodmann(
     return labeled
 
 
+def lookup_brodmann_surface(
+    electrodes: list[dict],
+    pial_vertices: np.ndarray,
+    lh_annot_path: str,
+    rh_annot_path: str,
+    n_lh_vertices: int,
+    coord_key: str = "corrected_mm",
+) -> list[dict]:
+    """
+    Look up Brodmann areas using FreeSurfer BA_exvivo surface annotations.
+    Finds the nearest pial vertex for each electrode and reads its BA label.
+    No network access required — uses local annotation files.
+
+    Args:
+        pial_vertices: (V, 3) combined LH+RH pial surface vertices (tkRAS).
+        lh_annot_path: path to lh.BA_exvivo.annot
+        rh_annot_path: path to rh.BA_exvivo.annot
+        n_lh_vertices: number of LH vertices (offset for RH indexing).
+        coord_key:     electrode coordinate to use for nearest-vertex lookup.
+    """
+    import nibabel.freesurfer as fs
+
+    lh_labels, _, lh_names = fs.read_annot(lh_annot_path)
+    rh_labels, _, rh_names = fs.read_annot(rh_annot_path)
+    all_labels = np.concatenate([lh_labels, rh_labels])
+
+    labeled = []
+    for elec in electrodes:
+        coord = elec.get(coord_key, elec.get("centroid_mm"))
+        nearest_idx = int(np.argmin(np.linalg.norm(pial_vertices - coord, axis=1)))
+
+        if nearest_idx < n_lh_vertices:
+            raw_name = lh_names[lh_labels[nearest_idx]].decode()
+        else:
+            raw_name = rh_names[rh_labels[nearest_idx - n_lh_vertices]].decode()
+
+        ba_id = int(raw_name.replace("BA", "")) if raw_name.startswith("BA") else 0
+
+        labeled.append({
+            **elec,
+            "brodmann_area": ba_id,
+            "anatomy_label": BRODMANN_LABELS.get(ba_id, raw_name or f"BA {ba_id} (unlabeled)"),
+        })
+
+    return labeled
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Task 3.3 – Validation
 # ──────────────────────────────────────────────────────────────────────────────
