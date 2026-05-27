@@ -150,7 +150,15 @@ def lookup_brodmann_surface(
         else:
             raw_name = rh_names[rh_labels[nearest_idx - n_lh_vertices]].decode()
 
-        ba_id = int(raw_name.replace("BA", "")) if raw_name.startswith("BA") else 0
+        # FreeSurfer exvivo labels: "BA1_exvivo", "V1_exvivo" (=BA17), "V2_exvivo" (=BA18)
+        import re
+        _EXVIVO_MAP = {"V1": 17, "V2": 18, "V3": 19, "MT": 21}
+        m = re.match(r"BA(\d+)", raw_name)
+        if m:
+            ba_id = int(m.group(1))
+        else:
+            prefix = re.match(r"([A-Za-z0-9]+)_?exvivo", raw_name)
+            ba_id = _EXVIVO_MAP.get(prefix.group(1) if prefix else "", 0)
 
         labeled.append({
             **elec,

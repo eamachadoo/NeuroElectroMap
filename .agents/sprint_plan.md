@@ -50,7 +50,7 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | P3-3 | Brodmann lookup via `BA_exvivo.annot` (offline)    | `[x]`  | `src/labeling.py` — `lookup_brodmann_surface`; no network needed |
 | P3-4 | Euclidean error validation                         | `[x]`  | `src/labeling.py:121` |
 | P3-5 | Unit tests — labeling                              | `[x]`  | `tests/test_labeling.py` |
-| P3-6 | Ground-truth dataset for validation                | `[~]`  | MNE sample sEEG used; real clinical ground truth still needed |
+| P3-6 | Ground-truth dataset for validation                | `[~]`  | ds004473 acquired (Oregon OHSU, real sEEG patients); ground truth TSV identified; unit conversion metres→mm done; nearest-neighbour validation logic still needed |
 
 ---
 
@@ -61,7 +61,7 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | P4-1 | PyVista 3D render + matplotlib fallback            | `[x]`  | `src/visualization.py` |
 | P4-2 | CSV / Excel report export                          | `[x]`  | `src/labeling.py:152` |
 | P4-3 | CLI (`--mri`, `--ct`, `--subject-dir`, `--plot`)   | `[x]`  | `main.py` |
-| P4-4 | End-to-end integration test with real patient data | `[ ]`  | Needs clinical MRI+CT pair with known electrode positions |
+| P4-4 | End-to-end integration test with real patient data | `[~]`  | ds004473 sub-12 pipeline ran end-to-end; 3D render shows electrodes on brain; BA labels produced; validation logic needs fixing (compare centroid_mm vs GT, nearest-neighbour matching) |
 | P4-5 | Unit tests — visualization                         | `[ ]`  | `tests/test_visualization.py` not yet created |
 
 ---
@@ -70,6 +70,6 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 
 | Priority | ID   | Issue | Why it blocks |
 |----------|------|-------|---------------|
-| 🔴 High  | P4-4 | End-to-end validation | Cannot confirm <2mm error target without real clinical data |
-| 🟡 Med   | P3-6 | Clinical ground truth | MNE sample gives no labelled electrode positions to compare against |
+| 🔴 High  | P4-4 | Fix validation logic | Must compare `centroid_mm` (scanner RAS) vs GT, use nearest-neighbour matching, not zip(); pial surface for ds004473 sub-12 is still the MNE sample subject — needs FreeSurfer recon-all on sub-12's T1w |
+| 🟡 Med   | P3-6 | Nearest-neighbour matching | 228 detected objects vs ~50 ground truth contacts; zip() silently truncates; need spatial matching |
 | 🟢 Low   | P4-5 | Visualization tests | No coverage for `visualization.py` |

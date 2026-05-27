@@ -1,4 +1,4 @@
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -7,31 +7,29 @@ dist/
 build/
 .eggs/
 
-# Virtual environments
+# ── Virtual environment ────────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 
-# Data (large NIfTI files — each member downloads their own copy)
-data/
-!data/.gitkeep
+# ── Data (large NIfTI/MGZ/surface files — see GUIDE.md to download) ──────────
+data/raw/
 
-# Pipeline outputs
-outputs/
-!outputs/.gitkeep
+# ── Pipeline intermediates (large processed NIfTI files) ─────────────────────
+outputs/processed/
+outputs/sub-12-validated/processed/
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
+# ── Library download caches ───────────────────────────────────────────────────
+nilearn_data/
+dipy_data/
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# IDE
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/settings.json
 .idea/
 
-# nilearn / dipy cache
-nilearn_data/
-dipy_data/
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/

@@ -1,0 +1,229 @@
+Electrode_ID,X_mm,Y_mm,Z_mm,Brodmann_Area,Anatomy_Label,Shift_Correction_mm
+1,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,190.262
+2,21.968,10.891,65.609,6,Premotor & Supplementary Motor Cortex,177.289
+3,21.968,10.891,65.609,6,Premotor & Supplementary Motor Cortex,166.846
+4,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,186.6
+5,21.968,10.891,65.609,6,Premotor & Supplementary Motor Cortex,173.986
+6,23.875,16.892,63.747,6,Premotor & Supplementary Motor Cortex,178.188
+7,23.743,9.062,65.308,0,unknown,192.223
+8,20.418,-8.837,68.291,6,Premotor & Supplementary Motor Cortex,158.639
+9,20.418,-8.837,68.291,6,Premotor & Supplementary Motor Cortex,158.328
+10,23.743,9.062,65.308,0,unknown,191.468
+11,23.743,9.062,65.308,0,unknown,190.014
+12,23.743,9.062,65.308,0,unknown,186.293
+13,37.146,15.854,58.4,0,unknown,211.471
+14,20.418,-8.837,68.291,6,Premotor & Supplementary Motor Cortex,154.207
+15,37.146,15.854,58.4,0,unknown,212.014
+16,37.146,15.854,58.4,0,unknown,211.894
+17,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,140.103
+18,37.146,15.854,58.4,0,unknown,209.176
+19,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,133.149
+20,21.968,10.891,65.609,6,Premotor & Supplementary Motor Cortex,148.333
+21,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,133.363
+22,10.634,26.545,64.543,6,Premotor & Supplementary Motor Cortex,125.873
+23,23.968,18.708,63.24,6,Premotor & Supplementary Motor Cortex,152.049
+24,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,147.131
+25,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,128.953
+26,36.169,16.619,58.619,0,unknown,178.754
+27,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,160.66
+28,12.152,26.428,64.384,6,Premotor & Supplementary Motor Cortex,115.469
+29,22.313,-5.242,67.372,6,Premotor & Supplementary Motor Cortex,154.941
+30,22.667,9.163,65.663,0,unknown,148.176
+31,23.42,16.199,64.11,6,Premotor & Supplementary Motor Cortex,159.297
+32,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,116.348
+33,37.146,15.854,58.4,0,unknown,168.535
+34,23.743,9.062,65.308,0,unknown,155.045
+35,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,116.053
+36,36.169,16.619,58.619,0,unknown,157.902
+37,23.42,16.199,64.11,6,Premotor & Supplementary Motor Cortex,157.374
+38,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,148.144
+39,12.152,26.428,64.384,6,Premotor & Supplementary Motor Cortex,119.133
+40,23.743,9.062,65.308,0,unknown,152.796
+41,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,140.466
+42,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,111.808
+43,37.146,15.854,58.4,0,unknown,164.92
+44,36.062,15.303,58.945,0,unknown,155.437
+45,36.169,16.619,58.619,0,unknown,155.269
+46,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,131.907
+47,37.146,15.854,58.4,0,unknown,168.666
+48,23.743,9.062,65.308,0,unknown,150.55
+49,22.667,9.163,65.663,0,unknown,135.921
+50,36.062,15.303,58.945,0,unknown,153.446
+51,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,136.883
+52,37.146,15.854,58.4,0,unknown,161.504
+53,37.146,15.854,58.4,0,unknown,152.625
+54,37.146,15.854,58.4,0,unknown,166.044
+55,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,98.494
+56,23.743,9.062,65.308,0,unknown,148.512
+57,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,129.506
+58,36.062,15.303,58.945,0,unknown,151.503
+59,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,98.948
+60,22.313,-5.242,67.372,6,Premotor & Supplementary Motor Cortex,134.81
+61,37.146,15.854,58.4,0,unknown,163.477
+62,23.743,9.062,65.308,0,unknown,146.499
+63,37.146,15.854,58.4,0,unknown,150.198
+64,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,127.006
+65,23.743,9.062,65.308,0,unknown,133.138
+66,36.062,15.303,58.945,0,unknown,149.651
+67,37.146,15.854,58.4,0,unknown,157.802
+68,22.741,-6.619,67.399,6,Premotor & Supplementary Motor Cortex,133.436
+69,37.146,15.854,58.4,0,unknown,160.768
+70,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,93.35
+71,33.389,-5.226,62.949,6,Premotor & Supplementary Motor Cortex,144.3
+72,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,124.418
+73,37.146,15.854,58.4,0,unknown,147.796
+74,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,122.367
+75,37.146,15.854,58.4,0,unknown,147.855
+76,23.743,9.062,65.308,0,unknown,129.673
+77,12.152,26.428,64.384,6,Premotor & Supplementary Motor Cortex,102.3
+78,37.146,15.854,58.4,0,unknown,158.152
+79,22.767,-8.285,67.619,6,Premotor & Supplementary Motor Cortex,132.234
+80,37.146,15.854,58.4,0,unknown,154.435
+81,33.389,-5.226,62.949,6,Premotor & Supplementary Motor Cortex,142.14
+82,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,121.918
+83,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,121.333
+84,37.146,15.854,58.4,0,unknown,145.941
+85,37.146,15.854,58.4,0,unknown,145.384
+86,37.146,15.854,58.4,0,unknown,155.492
+87,33.389,-5.226,62.949,6,Premotor & Supplementary Motor Cortex,140.018
+88,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,120.307
+89,23.743,9.062,65.308,0,unknown,119.398
+90,22.767,-8.285,67.619,6,Premotor & Supplementary Motor Cortex,130.984
+91,37.146,15.854,58.4,0,unknown,144.039
+92,23.743,9.062,65.308,0,unknown,126.185
+93,12.152,26.428,64.384,6,Premotor & Supplementary Motor Cortex,98.501
+94,37.146,15.854,58.4,0,unknown,150.754
+95,37.146,15.854,58.4,0,unknown,153.086
+96,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,119.419
+97,33.389,-5.226,62.949,6,Premotor & Supplementary Motor Cortex,136.826
+98,23.743,9.062,65.308,0,unknown,117.071
+99,37.146,15.854,58.4,0,unknown,143.071
+100,23.743,9.062,65.308,0,unknown,113.805
+101,37.146,15.854,58.4,0,unknown,142.238
+102,34.015,-6.712,62.825,6,Premotor & Supplementary Motor Cortex,129.878
+103,37.146,15.854,58.4,0,unknown,150.996
+104,21.707,-8.705,68.097,6,Premotor & Supplementary Motor Cortex,118.357
+105,23.743,9.062,65.308,0,unknown,122.585
+106,23.743,9.062,65.308,0,unknown,111.322
+107,22.498,17.193,64.222,6,Premotor & Supplementary Motor Cortex,94.273
+108,37.146,15.854,58.4,0,unknown,147.263
+109,37.146,15.854,58.4,0,unknown,139.721
+110,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,109.755
+111,34.015,-6.712,62.825,6,Premotor & Supplementary Motor Cortex,129.016
+112,37.146,15.854,58.4,0,unknown,140.601
+113,23.145,10.392,65.341,6,Premotor & Supplementary Motor Cortex,108.347
+114,23.42,16.199,64.11,6,Premotor & Supplementary Motor Cortex,106.897
+115,33.389,-5.226,62.949,6,Premotor & Supplementary Motor Cortex,119.333
+116,23.42,16.199,64.11,6,Premotor & Supplementary Motor Cortex,105.581
+117,22.498,17.193,64.222,6,Premotor & Supplementary Motor Cortex,89.992
+118,37.146,15.854,58.4,0,unknown,138.506
+119,23.875,16.892,63.747,6,Premotor & Supplementary Motor Cortex,104.21
+120,37.146,15.854,58.4,0,unknown,143.609
+121,37.146,15.854,58.4,0,unknown,140.106
+122,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,85.699
+123,39.962,44.55,38.011,0,unknown,148.213
+124,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,61.009
+125,-7.134,-7.695,71.285,6,Premotor & Supplementary Motor Cortex,60.665
+126,-14.281,3.799,69.754,6,Premotor & Supplementary Motor Cortex,60.014
+127,-14.281,3.799,69.754,6,Premotor & Supplementary Motor Cortex,57.166
+128,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,81.79
+129,39.962,44.55,38.011,0,unknown,141.254
+130,39.962,44.55,38.011,0,unknown,142.342
+131,39.962,44.55,38.011,0,unknown,144.383
+132,39.962,44.55,38.011,0,unknown,146.066
+133,39.962,44.55,38.011,0,unknown,145.617
+134,26.525,29.169,56.183,0,unknown,94.175
+135,-7.134,-7.695,71.285,6,Premotor & Supplementary Motor Cortex,54.279
+136,-6.298,-8.634,71.534,6,Premotor & Supplementary Motor Cortex,54.444
+137,-7.134,-7.695,71.285,6,Premotor & Supplementary Motor Cortex,53.87
+138,23.266,17.92,63.77,6,Premotor & Supplementary Motor Cortex,77.933
+139,28.505,41.219,49.168,0,unknown,93.354
+140,28.505,41.219,49.168,0,unknown,92.77
+141,28.505,41.219,49.168,0,unknown,91.932
+142,23.968,18.708,63.24,6,Premotor & Supplementary Motor Cortex,74.033
+143,41.966,43.042,37.076,0,unknown,167.272
+144,24.659,19.518,62.677,6,Premotor & Supplementary Motor Cortex,70.783
+145,42.244,41.512,37.791,0,unknown,173.191
+146,42.244,41.512,37.791,0,unknown,172.756
+147,41.966,43.042,37.076,0,unknown,173.162
+148,41.966,43.042,37.076,0,unknown,171.909
+149,41.966,43.042,37.076,0,unknown,170.665
+150,36.169,16.619,58.619,0,unknown,67.15
+151,35.966,-4.403,61.381,6,Premotor & Supplementary Motor Cortex,99.159
+152,47.704,-3.994,51.878,6,Premotor & Supplementary Motor Cortex,109.707
+153,46.942,-5.612,52.626,6,Premotor & Supplementary Motor Cortex,97.14
+154,-4.701,-8.596,71.036,6,Premotor & Supplementary Motor Cortex,26.754
+155,-4.701,-8.596,71.036,6,Premotor & Supplementary Motor Cortex,25.995
+156,-4.701,-8.596,71.036,6,Premotor & Supplementary Motor Cortex,24.329
+157,47.704,-3.994,51.878,6,Premotor & Supplementary Motor Cortex,108.025
+158,46.942,-5.612,52.626,6,Premotor & Supplementary Motor Cortex,94.8
+159,7.473,-9.892,68.412,6,Premotor & Supplementary Motor Cortex,21.019
+160,8.738,-8.855,68.368,6,Premotor & Supplementary Motor Cortex,21.776
+161,8.738,-8.855,68.368,6,Premotor & Supplementary Motor Cortex,20.473
+162,8.738,-8.855,68.368,6,Premotor & Supplementary Motor Cortex,19.964
+163,48.676,-2.799,50.69,6,Premotor & Supplementary Motor Cortex,105.975
+164,47.558,-5.232,52.119,6,Premotor & Supplementary Motor Cortex,92.514
+165,48.676,-2.799,50.69,6,Premotor & Supplementary Motor Cortex,104.041
+166,50.022,39.885,29.27,0,unknown,114.25
+167,50.022,39.885,29.27,0,unknown,120.641
+168,47.558,-5.232,52.119,6,Premotor & Supplementary Motor Cortex,90.333
+169,58.681,-1.609,40.484,6,Premotor & Supplementary Motor Cortex,101.791
+170,50.1,38.593,30.323,0,unknown,112.081
+171,50.022,39.885,29.27,0,unknown,110.184
+172,51.889,-22.406,49.119,1,Primary Somatosensory Cortex – tactile discrimination,88.364
+173,50.022,39.885,29.27,0,unknown,116.31
+174,50.022,39.885,29.27,0,unknown,114.633
+175,50.022,39.885,29.27,0,unknown,111.259
+176,58.977,0.662,39.744,6,Premotor & Supplementary Motor Cortex,99.347
+177,50.022,39.885,29.27,0,unknown,112.59
+178,21.904,-10.562,67.937,6,Premotor & Supplementary Motor Cortex,9.923
+179,21.904,-10.562,67.937,6,Premotor & Supplementary Motor Cortex,9.236
+180,51.889,-22.406,49.119,1,Primary Somatosensory Cortex – tactile discrimination,86.106
+181,21.904,-10.562,67.937,6,Premotor & Supplementary Motor Cortex,6.696
+182,23.008,-11.347,67.226,6,Premotor & Supplementary Motor Cortex,6.716
+183,23.78,-11.08,66.724,6,Premotor & Supplementary Motor Cortex,10.885
+184,58.977,0.662,39.744,6,Premotor & Supplementary Motor Cortex,97.436
+185,23.78,-11.08,66.724,6,Premotor & Supplementary Motor Cortex,9.194
+186,61.191,-18.223,40.32,3,Primary Somatosensory Cortex – tactile reception,83.704
+187,59.286,4.837,38.521,6,Premotor & Supplementary Motor Cortex,95.412
+188,61.191,-18.223,40.32,3,Primary Somatosensory Cortex – tactile reception,81.104
+189,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,93.674
+190,54.467,21.335,37.102,0,unknown,134.535
+191,54.467,21.335,37.102,0,unknown,139.477
+192,61.191,-18.223,40.32,3,Primary Somatosensory Cortex – tactile reception,79.017
+193,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,92.108
+194,44.667,-28.887,54.418,1,Primary Somatosensory Cortex – tactile discrimination,20.978
+195,46.426,-28.805,53.202,1,Primary Somatosensory Cortex – tactile discrimination,23.47
+196,62.026,-32.794,39.74,0,unknown,76.62
+197,46.426,-28.805,53.202,1,Primary Somatosensory Cortex – tactile discrimination,18.225
+198,45.999,-31.878,53.218,1,Primary Somatosensory Cortex – tactile discrimination,34.585
+199,59.491,-37.602,41.108,0,unknown,37.892
+200,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,132.089
+201,60.295,8.479,34.865,6,Premotor & Supplementary Motor Cortex,123.561
+202,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,127.642
+203,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,122.536
+204,59.491,-37.602,41.108,0,unknown,33.206
+205,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,123.013
+206,61.066,-37.716,39.992,0,unknown,49.823
+207,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,123.61
+208,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,131.489
+209,61.066,-37.716,39.992,0,unknown,54.754
+210,60.295,8.479,34.865,6,Premotor & Supplementary Motor Cortex,124.455
+211,59.73,4.346,38.037,6,Premotor & Supplementary Motor Cortex,128.788
+212,66.055,-16.045,33.017,3,Primary Somatosensory Cortex – tactile reception,106.142
+213,66.055,-16.045,33.017,3,Primary Somatosensory Cortex – tactile reception,100.837
+214,57.926,-52.794,37.788,0,unknown,68.705
+215,61.066,-37.716,39.992,0,unknown,50.012
+216,61.066,-37.716,39.992,0,unknown,52.43
+217,57.926,-52.794,37.788,0,unknown,74.065
+218,63.366,-32.713,38.0,0,unknown,73.455
+219,66.055,-16.045,33.017,3,Primary Somatosensory Cortex – tactile reception,105.427
+220,66.272,-15.311,32.543,3,Primary Somatosensory Cortex – tactile reception,103.693
+221,57.926,-52.794,37.788,0,unknown,72.266
+222,57.926,-52.794,37.788,0,unknown,68.494
+223,57.926,-52.794,37.788,0,unknown,69.776
+224,65.042,-36.411,35.429,0,unknown,74.497
+225,65.042,-36.411,35.429,0,unknown,75.255
+226,67.852,-29.552,31.284,0,unknown,71.034
+227,70.081,-25.03,27.079,0,unknown,111.413
+228,70.081,-25.03,27.079,0,unknown,110.512

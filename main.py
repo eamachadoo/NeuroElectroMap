@@ -104,7 +104,15 @@ def run_pipeline(args: argparse.Namespace) -> None:
     transformed_ct, ct_to_mri_matrix = register_ct_to_mri(mri_masked, ct_img)
     save_nifti(transformed_ct, out_dir / "processed" / "ct_registered.nii.gz")
 
-    electrodes = segment_electrodes(transformed_ct)
+    # Segment on the ORIGINAL CT — resampling destroys HU values via interpolation,
+    # dropping metal contacts from 3000+ HU to blurred averages. Detected centroids
+    # (in CT world space) are then moved into MRI space via the registration transform.
+    electrodes = segment_electrodes(ct_img)
+    from src.registration import apply_affine_to_points
+    ct_centroids = np.array([e["centroid_mm"] for e in electrodes])
+    mri_centroids = apply_affine_to_points(ct_centroids, ct_to_mri_matrix)
+    for e, mri_c in zip(electrodes, mri_centroids):
+        e["centroid_mm"] = mri_c
 
     if not electrodes:
         print("[ERROR] No electrodes detected. Check HU threshold or CT quality.")
