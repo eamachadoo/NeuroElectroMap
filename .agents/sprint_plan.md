@@ -76,6 +76,7 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | P5-4 | 2D schematic view (`brain2d.jsx`)                   | `[ ]`  | SVG lateral schematic, BA regions, electrode hover, selection sync |
 | P5-5 | 3D anatomical view (`brain3d.jsx`)                  | `[ ]`  | Plotly Mesh3d semi-transparent + Scatter3d electrodes |
 | P5-6 | Tests + README                                      | `[ ]`  | Smoke tests for export script, viewer usage docs |
+| P5-7 | Desktop launcher (`pywebview`)                      | `[ ]`  | `scripts/launch_desktop.py` + `make desktop` — opens the viewer in a native window. Implement after P5-5. |
 
 ---
 
@@ -84,6 +85,7 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | Future | Issue | Notes |
 |--------|-------|-------|
 | F-1 | **Multi-patient comparison view** | Compare 2 or more patients side-by-side in the viewer. Requires: (a) export script writes per-patient subdirs e.g. `outputs/viewer/sub-12/data.js`; (b) `viewer/index.js` manifest listing available patients; (c) UI: case selector becomes multi-select, side-by-side or overlay layout; (d) common MNI-space coordinate frame so meshes overlay. Mentioned by user 2026-05-31. |
+| F-2 | **Standalone `.app` / `.exe` bundle** | Package the viewer + pipeline with PyInstaller (or py2app on macOS) so a clinician can launch it without installing Python. Should bundle the venv, the viewer assets, and any required system libraries. Depends on P5-7 (pywebview launcher). |
 
 ---
 

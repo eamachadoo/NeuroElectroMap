@@ -207,16 +207,21 @@ def export_viewer_data(
         rh_verts, rh_faces, rh_ba, target_reduction)
 
     # ── Electrodes (only the fields the viewer needs) ───────────────────────
+    # `mni_mm` is exported even though the current single-patient UI doesn't
+    # use it — it's the common frame needed for the future multi-patient
+    # comparison view (F-1 in sprint_plan.md).
     elec_out: list[dict] = []
     for e in electrodes:
         ba = int(e.get("brodmann_area", 0))
         group, schematic_id, _ = BA_GROUPS.get(ba, _UNLABELED)
         centroid = np.asarray(e.get("centroid_mm", [0.0, 0.0, 0.0]))
         corrected = np.asarray(e.get("corrected_mm", centroid))
+        mni = e.get("mni_mm")
         elec_out.append({
             "id":            str(e["id"]),
             "centroid_mm":   [round(float(c), 3) for c in centroid],
             "corrected_mm":  [round(float(c), 3) for c in corrected],
+            "mni_mm":        [round(float(c), 3) for c in np.asarray(mni)] if mni is not None else None,
             "shift_mm":      round(float(e.get("shift_mm", 0.0)), 3),
             "brodmann_area": ba,
             "anatomy_label": str(e.get("anatomy_label", "")),
