@@ -33,6 +33,19 @@ def test_compute_euclidean_error_zero():
     assert stats["mean_error_mm"] == pytest.approx(0.0)
 
 
+def test_compute_euclidean_error_mismatched_counts():
+    """NN matching: 5 predicted, 3 GT — must return 3 errors and not crash."""
+    predicted = _make_electrodes(5)
+    ground_truth = [
+        {"id": 1, "gt_mm": np.array([0.0, 0.0, 0.0])},
+        {"id": 2, "gt_mm": np.array([1.0, 1.0, 1.0])},
+        {"id": 3, "gt_mm": np.array([2.0, 2.0, 2.0])},
+    ]
+    stats = compute_euclidean_error(predicted, ground_truth)
+    assert len(stats["per_electrode"]) == 3
+    assert stats["mean_error_mm"] == pytest.approx(0.0)
+
+
 def test_export_report_csv():
     electrodes = _make_electrodes(2)
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:

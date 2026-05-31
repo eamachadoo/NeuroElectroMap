@@ -47,6 +47,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--subject-dir", default=None,
                         help="FreeSurfer subject directory (contains surf/, mri/). "
                              "Required for pial surface loading and MNI normalization.")
+    parser.add_argument("--export-viewer", action="store_true",
+                        help="Export pipeline outputs to outputs/viewer/data.json "
+                             "so the browser viewer (viewer/index.html) can render them.")
     return parser.parse_args()
 
 
@@ -69,12 +72,32 @@ def _parse_talairach_xfm(xfm_path: Path) -> np.ndarray:
 
 
 def load_ground_truth(path: str) -> list[dict]:
-    """Load ground-truth electrode positions from a JSON file.
+    """Load ground-truth electrode positions from a JSON or BIDS TSV file.
 
-    Expected format:
+    JSON format:
         [{"id": 1, "gt_mm": [x, y, z]}, ...]
+
+    BIDS TSV format (e.g. sub-12_task-SlowFast_electrodes.tsv):
+        Tab-separated with columns: name, x, y, z  (plus optional extras).
+        Coordinates are read as-is; ensure they are in the same space as
+        the predicted coordinates passed to compute_euclidean_error.
     """
-    with open(path) as f:
+    import csv
+    p = Path(path)
+    if p.suffix == ".tsv":
+        entries = []
+        with open(p) as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            for i, row in enumerate(reader, start=1):
+                entries.append({
+                    "id": row.get("name", str(i)),
+                    "gt_mm": np.array([float(row["x"]),
+                                       float(row["y"]),
+                                       float(row["z"])]),
+                })
+        return entries
+    # default: JSON
+    with open(p) as f:
         data = json.load(f)
     for entry in data:
         entry["gt_mm"] = np.array(entry["gt_mm"])
@@ -101,7 +124,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
     # ── Phase 2: Fusion Engine ────────────────────────────────────────────────
     print("\n=== Phase 2: Fusion Engine ===")
-    transformed_ct, ct_to_mri_matrix = register_ct_to_mri(mri_masked, ct_img)
+    # Use the original (non-masked) MRI for registration — brain masking
+    # zeros out valid tissue outside the brain and confuses Mutual Information.
+    transformed_ct, ct_to_mri_matrix = register_ct_to_mri(mri_img, ct_img)
     save_nifti(transformed_ct, out_dir / "processed" / "ct_registered.nii.gz")
 
     # Segment on the ORIGINAL CT — resampling destroys HU values via interpolation,
@@ -137,6 +162,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     t1_mgz = _nib.load(str(subj_dir / "mri" / "T1.mgz"))
     scanner_to_tkr = t1_mgz.header.get_vox2ras_tkr() @ np.linalg.inv(t1_mgz.header.get_vox2ras())
     for e in electrodes:
+        e["centroid_scanner_mm"] = e["centroid_mm"].copy()   # keep scanner RAS for validation
         c = np.append(e["centroid_mm"], 1.0)
         e["centroid_mm"] = (scanner_to_tkr @ c)[:3]
 
@@ -165,7 +191,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if args.validate:
         print("\n=== Validation ===")
         ground_truth = load_ground_truth(args.validate)
-        compute_euclidean_error(electrodes, ground_truth)
+        # Compare in scanner RAS (same space as the GT file).
+        # corrected_mm is in tkRAS (post surface-snap) — not appropriate for depth electrodes.
+        compute_euclidean_error(electrodes, ground_truth, pred_key="centroid_scanner_mm")
 
     # ── Phase 4: Outputs ──────────────────────────────────────────────────────
     print("\n=== Phase 4: Outputs ===")
@@ -176,6 +204,19 @@ def run_pipeline(args: argparse.Namespace) -> None:
         render_path = str(figures_dir / "electrodes_3d.png")
         plot_electrodes(pial_vertices, electrodes, pial_faces,
                         output_path=render_path)
+
+    if args.export_viewer:
+        from scripts.export_for_viewer import export_viewer_data
+        viewer_dir = out_dir / "viewer"
+        export_viewer_data(
+            electrodes=electrodes,
+            lh_verts=lh_verts, lh_faces=lh_faces,
+            rh_verts=rh_verts, rh_faces=rh_faces,
+            lh_annot_path=str(subj_dir / "label" / "lh.BA_exvivo.annot"),
+            rh_annot_path=str(subj_dir / "label" / "rh.BA_exvivo.annot"),
+            output_path=viewer_dir / "data.json",
+            patient_id=subj_dir.name,
+        )
 
     print("\nPipeline complete.")
 

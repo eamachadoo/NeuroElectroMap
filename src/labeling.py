@@ -180,20 +180,33 @@ def compute_euclidean_error(
     gt_key: str = "gt_mm",
 ) -> dict:
     """
-    Compare predicted electrode positions against ground truth markers.
+    Compare predicted electrode positions against ground truth via
+    nearest-neighbour matching.  Each GT contact is independently matched
+    to the closest predicted electrode, so the lists need not have the
+    same length.
+
+    Note: pred_key and gt_key coordinates must be in the same space.
     Clinical precision target: mean error < 2.0 mm.
 
     Returns:
-        {mean_error_mm, max_error_mm, per_electrode_errors}
+        {mean_error_mm, max_error_mm, per_electrode}
     """
+    pred_coords = np.array([p[pred_key] for p in predicted])   # (N, 3)
     errors = []
-    for pred, gt in zip(predicted, ground_truth):
-        dist = float(np.linalg.norm(pred[pred_key] - gt[gt_key]))
-        errors.append({"id": pred["id"], "error_mm": dist})
-        print(f"  Electrode {pred['id']}: {dist:.3f} mm")
+    for gt in ground_truth:
+        gt_coord = np.asarray(gt[gt_key])
+        dists = np.linalg.norm(pred_coords - gt_coord, axis=1)
+        nearest_idx = int(np.argmin(dists))
+        dist = float(dists[nearest_idx])
+        errors.append({
+            "id": gt["id"],
+            "error_mm": dist,
+            "matched_pred_id": predicted[nearest_idx]["id"],
+        })
+        print(f"  GT {gt['id']} → pred E{predicted[nearest_idx]['id']}: {dist:.3f} mm")
 
     mean_err = float(np.mean([e["error_mm"] for e in errors]))
-    max_err = float(np.max([e["error_mm"] for e in errors]))
+    max_err  = float(np.max([e["error_mm"] for e in errors]))
     print(f"\nMean Euclidean Error : {mean_err:.3f} mm  (target < 2.0 mm)")
     print(f"Max  Euclidean Error : {max_err:.3f} mm")
 

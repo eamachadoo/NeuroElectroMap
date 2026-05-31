@@ -50,7 +50,7 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | P3-3 | Brodmann lookup via `BA_exvivo.annot` (offline)    | `[x]`  | `src/labeling.py` — `lookup_brodmann_surface`; no network needed |
 | P3-4 | Euclidean error validation                         | `[x]`  | `src/labeling.py:121` |
 | P3-5 | Unit tests — labeling                              | `[x]`  | `tests/test_labeling.py` |
-| P3-6 | Ground-truth dataset for validation                | `[~]`  | ds004473 acquired (Oregon OHSU, real sEEG patients); ground truth TSV identified; unit conversion metres→mm done; nearest-neighbour validation logic still needed |
+| P3-6 | Ground-truth dataset for validation                | `[x]`  | ds004473 acquired (Oregon OHSU, real sEEG patients); nearest-neighbour validation logic implemented in `compute_euclidean_error` |
 
 ---
 
@@ -61,15 +61,32 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | P4-1 | PyVista 3D render + matplotlib fallback            | `[x]`  | `src/visualization.py` |
 | P4-2 | CSV / Excel report export                          | `[x]`  | `src/labeling.py:152` |
 | P4-3 | CLI (`--mri`, `--ct`, `--subject-dir`, `--plot`)   | `[x]`  | `main.py` |
-| P4-4 | End-to-end integration test with real patient data | `[~]`  | ds004473 sub-12 pipeline ran end-to-end; 3D render shows electrodes on brain; BA labels produced; validation logic needs fixing (compare centroid_mm vs GT, nearest-neighbour matching) |
-| P4-5 | Unit tests — visualization                         | `[ ]`  | `tests/test_visualization.py` not yet created |
+| P4-4 | End-to-end integration test with real patient data | `[x]`  | ds004473 sub-12 pipeline ran end-to-end; NN validation logic fixed; TSV ground-truth loading added to `load_ground_truth` |
+| P4-5 | Unit tests — visualization                         | `[x]`  | `tests/test_visualization.py` — 2 smoke tests (matplotlib save path) |
+
+---
+
+## Milestone 6 — Phase 5: Clinical Viewer (in progress)
+
+| ID   | Issue                                              | Status | Notes |
+|------|----------------------------------------------------|--------|-------|
+| P5-1 | `scripts/export_for_viewer.py` + `--export-viewer` | `[x]`  | Pipeline → `outputs/viewer/data.{json,js}` (mesh decimated to ~33k verts/hemisphere) |
+| P5-2 | Viewer shell (`index.html`, `app.jsx`, `regions.js`) | `[x]`  | Top bar, 2D/3D toggle, light/dark theme toggle, legend, error screen |
+| P5-3 | Side panel (`panel.jsx`)                            | `[ ]`  | Overview / Region detail / Electrode detail (no mock signal data) |
+| P5-4 | 2D schematic view (`brain2d.jsx`)                   | `[ ]`  | SVG lateral schematic, BA regions, electrode hover, selection sync |
+| P5-5 | 3D anatomical view (`brain3d.jsx`)                  | `[ ]`  | Plotly Mesh3d semi-transparent + Scatter3d electrodes |
+| P5-6 | Tests + README                                      | `[ ]`  | Smoke tests for export script, viewer usage docs |
+
+---
+
+## Backlog (future milestones)
+
+| Future | Issue | Notes |
+|--------|-------|-------|
+| F-1 | **Multi-patient comparison view** | Compare 2 or more patients side-by-side in the viewer. Requires: (a) export script writes per-patient subdirs e.g. `outputs/viewer/sub-12/data.js`; (b) `viewer/index.js` manifest listing available patients; (c) UI: case selector becomes multi-select, side-by-side or overlay layout; (d) common MNI-space coordinate frame so meshes overlay. Mentioned by user 2026-05-31. |
 
 ---
 
 ## Open Blockers
 
-| Priority | ID   | Issue | Why it blocks |
-|----------|------|-------|---------------|
-| 🔴 High  | P4-4 | Fix validation logic | Must compare `centroid_mm` (scanner RAS) vs GT, use nearest-neighbour matching, not zip(); pial surface for ds004473 sub-12 is still the MNE sample subject — needs FreeSurfer recon-all on sub-12's T1w |
-| 🟡 Med   | P3-6 | Nearest-neighbour matching | 228 detected objects vs ~50 ground truth contacts; zip() silently truncates; need spatial matching |
-| 🟢 Low   | P4-5 | Visualization tests | No coverage for `visualization.py` |
+None.
