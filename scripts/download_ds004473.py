@@ -16,6 +16,7 @@ Total: ~74 MB
 """
 
 import urllib.request
+import urllib.parse
 import sys
 from pathlib import Path
 
@@ -32,6 +33,9 @@ FILES = [
     f"{FS}/surf/rh.pial",
     f"{FS}/label/lh.BA_exvivo.annot",
     f"{FS}/label/rh.BA_exvivo.annot",
+    # Volumetric Desikan-Killiany + ASEG atlas — labels every electrode,
+    # including deep / subcortical / white-matter contacts that BA_exvivo misses.
+    f"{FS}/mri/aparc+aseg.mgz",
 ]
 
 
@@ -53,7 +57,8 @@ def main():
             print(f"  ✓  {rel_path}  (already present, skipping)")
             continue
 
-        url = f"{BASE_URL}/{rel_path}"
+        # Percent-encode the path so chars like '+' (in aparc+aseg.mgz) work.
+        url = f"{BASE_URL}/{urllib.parse.quote(rel_path)}"
         print(f"  ↓  {rel_path}")
         try:
             urllib.request.urlretrieve(url, dest_file, reporthook=_progress)

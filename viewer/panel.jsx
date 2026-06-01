@@ -104,9 +104,13 @@ function Overview({ data, onSelectRegion, onSelectElectrode }) {
 
 /* ───────────────────────── Region detail ───────────────────────────── */
 
-function RegionDetail({ region, regionElectrodes, onBackToOverview, onSelectElectrode }) {
+function RegionDetail({ region, regionElectrodes, schematicElectrodes,
+                       onBackToOverview, onSelectElectrode }) {
   const info = window.nemRegionInfo(region.ba);
-  const meanShift = _mean(regionElectrodes.map((e) => e.shift_mm));
+  const allHere = regionElectrodes.length + schematicElectrodes.length;
+  const meanShift = _mean(
+    [...regionElectrodes, ...schematicElectrodes].map((e) => e.shift_mm)
+  );
 
   return (
     <div className="pbody">
@@ -125,7 +129,7 @@ function RegionDetail({ region, regionElectrodes, onBackToOverview, onSelectElec
 
       <div className="statrow">
         <div className="stat">
-          <div className="stat-n">{regionElectrodes.length}</div>
+          <div className="stat-n">{allHere}</div>
           <div className="stat-l">Electrodes here</div>
         </div>
         <div className="stat">
@@ -138,9 +142,9 @@ function RegionDetail({ region, regionElectrodes, onBackToOverview, onSelectElec
         </div>
       </div>
 
-      <div className="p-sec">Electrodes in this region</div>
+      <div className="p-sec">Mapped to this Brodmann area</div>
       {regionElectrodes.length === 0 ? (
-        <p className="p-note">No electrodes implanted in this region for this patient.</p>
+        <p className="p-note">No electrodes mapped specifically to this BA in this patient.</p>
       ) : (
         <div className="elist">
           {regionElectrodes.map((e) => (
@@ -153,44 +157,109 @@ function RegionDetail({ region, regionElectrodes, onBackToOverview, onSelectElec
           ))}
         </div>
       )}
+
+      {schematicElectrodes.length > 0 && (
+        <>
+          <div className="p-sec">Other electrodes in this anatomical area</div>
+          <p className="p-note" style={{ marginTop: 0, marginBottom: 10 }}>
+            Placed in this schematic area via Desikan-Killiany cortical labels
+            (no specific Brodmann mapping).
+          </p>
+          <div className="elist">
+            {schematicElectrodes.map((e) => (
+              <button key={e.id} className="erow" onClick={() => onSelectElectrode(e.id)}>
+                <span className="erow-id">E{e.id}</span>
+                <span className="erow-anat" title={e.aseg_label}>{e.aseg_label || "—"}</span>
+                <span className="erow-shift">{e.shift_mm.toFixed(1)} mm</span>
+                <span className="chev">›</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 /* ───────────────────────── Electrode detail ────────────────────────── */
 
-function ElectrodeDetail({ elec, region, onBackToRegion, onGoToRegion }) {
-  const info = window.nemRegionInfo(elec.brodmann_area);
+function ElectrodeDetail({ elec, region, onBackToRegion, onBackToOverview, onGoToRegion }) {
+  const hasBA = elec.brodmann_area > 0;
+  const info = hasBA ? window.nemRegionInfo(elec.brodmann_area) : null;
+  const asegInfo = window.nemAsegInfo(elec.aseg_group || "unknown");
 
   return (
     <div className="pbody">
-      <button className="crumb" onClick={onBackToRegion}>‹ Back to BA {elec.brodmann_area}</button>
+      <button className="crumb"
+              onClick={hasBA ? onBackToRegion : onBackToOverview}>
+        {hasBA ? `‹ Back to BA ${elec.brodmann_area}` : "‹ Back to overview"}
+      </button>
 
       <div className="ed-head">
         <div className="ed-badge">E{elec.id}</div>
         <div>
           <h2 className="p-title">Electrode E{elec.id}</h2>
-          <button className="reglink" onClick={onGoToRegion}>
-            <span className="reglink-dot" style={{ background: region.color }} />
-            BA {elec.brodmann_area} — {info.name}
-          </button>
+          {hasBA ? (
+            <button className="reglink" onClick={onGoToRegion}>
+              <span className="reglink-dot" style={{ background: region.color }} />
+              BA {elec.brodmann_area} — {info.name}
+            </button>
+          ) : (
+            <div className="reglink" style={{ cursor: "default" }}>
+              <span className="reglink-dot" style={{ background: asegInfo.color }} />
+              {asegInfo.label}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="attrgrid">
+        {/* Anatomy summary — prefer BA, fall back to aseg */}
         <div className="attr attr-wide">
           <div className="attr-k">Anatomy</div>
-          <div className="attr-v" style={{ fontFamily: "inherit" }}>{elec.anatomy_label || "—"}</div>
+          <div className="attr-v" style={{ fontFamily: "inherit" }}>
+            {hasBA && elec.anatomy_label
+              ? elec.anatomy_label
+              : (elec.aseg_label || "—")}
+          </div>
         </div>
 
-        <div className="attr">
-          <div className="attr-k">Brodmann area</div>
-          <div className="attr-v">BA {elec.brodmann_area}</div>
-        </div>
-        <div className="attr">
-          <div className="attr-k">Shift correction</div>
-          <div className="attr-v">{elec.shift_mm.toFixed(2)} mm</div>
-        </div>
+        {/* Brodmann area (only if mapped) + shift */}
+        {hasBA ? (
+          <>
+            <div className="attr">
+              <div className="attr-k">Brodmann area</div>
+              <div className="attr-v">BA {elec.brodmann_area}</div>
+            </div>
+            <div className="attr">
+              <div className="attr-k">Shift correction</div>
+              <div className="attr-v">{elec.shift_mm.toFixed(2)} mm</div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="attr">
+              <div className="attr-k">Volumetric atlas</div>
+              <div className="attr-v" style={{ fontFamily: "inherit" }}>{asegInfo.label}</div>
+            </div>
+            <div className="attr">
+              <div className="attr-k">Shift correction</div>
+              <div className="attr-v">{elec.shift_mm.toFixed(2)} mm</div>
+            </div>
+          </>
+        )}
+
+        {/* Secondary aseg label when we already have a BA — shows depth context */}
+        {hasBA && elec.aseg_label && elec.aseg_group !== "cortical" && (
+          <div className="attr attr-wide">
+            <div className="attr-k">Volumetric label</div>
+            <div className="attr-v" style={{ fontFamily: "inherit" }}>
+              {elec.aseg_label} <span style={{
+                fontSize: "10.5px", color: "var(--muted)", fontWeight: 500,
+              }}>· {asegInfo.label}</span>
+            </div>
+          </div>
+        )}
 
         <div className="attr attr-wide">
           <div className="attr-k">Patient space (tkRAS, mm)</div>
@@ -205,11 +274,19 @@ function ElectrodeDetail({ elec, region, onBackToRegion, onGoToRegion }) {
         )}
       </div>
 
-      {elec.shift_mm > 10 && (
+      {hasBA && elec.shift_mm > 10 && (
         <p className="p-note" style={{ marginTop: 14 }}>
           Large brain-shift correction expected for depth (sEEG) electrodes —
           the "corrected" position is the nearest cortical surface vertex along
           the electrode trajectory, not the contact's true depth.
+        </p>
+      )}
+      {!hasBA && elec.aseg_group === "unknown" && (
+        <p className="p-note" style={{ marginTop: 14 }}>
+          No anatomical label could be assigned. This often indicates a
+          segmentation artifact — a high-HU object outside the brain volume
+          (cable, connector, partial-volume effect) that was detected by the
+          HU threshold but is not a contact in tissue.
         </p>
       )}
     </div>
@@ -233,6 +310,7 @@ function Panel(props) {
           elec={elec}
           region={region}
           onBackToRegion={() => onSelectRegion(elec.brodmann_area)}
+          onBackToOverview={onClearSelection}
           onGoToRegion={() => onSelectRegion(elec.brodmann_area)}
         />
       );
@@ -244,10 +322,16 @@ function Panel(props) {
     const region = data.regions[String(selectedBA)];
     if (region) {
       const here = data.electrodes.filter((e) => e.brodmann_area === selectedBA);
+      // Electrodes placed on the same schematic region but without a BA hit
+      // (routed there via Desikan-Killiany aseg labels in export_for_viewer.py).
+      const schemHere = data.electrodes.filter((e) =>
+        e.brodmann_area === 0 && e.schematic_id === region.schematic_id
+      );
       return (
         <RegionDetail
           region={region}
           regionElectrodes={here}
+          schematicElectrodes={schemHere}
           onBackToOverview={onClearSelection}
           onSelectElectrode={onSelectElectrode}
         />

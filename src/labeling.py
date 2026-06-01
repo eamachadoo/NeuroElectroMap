@@ -170,6 +170,223 @@ def lookup_brodmann_surface(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Task 3.4 – Volumetric ASEG labeling (Desikan-Killiany + subcortical)
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# BA_exvivo only covers a handful of cortical Brodmann areas, leaving most
+# electrodes (especially deep sEEG contacts) labeled as BA 0. Sampling the
+# volumetric `aparc+aseg.mgz` atlas gives every electrode a meaningful
+# anatomical name — cortical (Desikan-Killiany) or subcortical
+# (Hippocampus, Amygdala, Thalamus, white matter, etc.).
+
+# FreeSurfer ASEG label codes (subcortical, ventricles, brain-stem, etc.).
+# Stable across FreeSurfer versions. Source: FreeSurferColorLUT.txt.
+_ASEG_SUBCORTICAL: dict[int, str] = {
+    0:  "Unknown",
+    2:  "Left-Cerebral-White-Matter",
+    4:  "Left-Lateral-Ventricle",
+    5:  "Left-Inf-Lat-Vent",
+    7:  "Left-Cerebellum-White-Matter",
+    8:  "Left-Cerebellum-Cortex",
+    10: "Left-Thalamus-Proper",
+    11: "Left-Caudate",
+    12: "Left-Putamen",
+    13: "Left-Pallidum",
+    14: "3rd-Ventricle",
+    15: "4th-Ventricle",
+    16: "Brain-Stem",
+    17: "Left-Hippocampus",
+    18: "Left-Amygdala",
+    24: "CSF",
+    26: "Left-Accumbens-area",
+    28: "Left-VentralDC",
+    30: "Left-vessel",
+    31: "Left-choroid-plexus",
+    41: "Right-Cerebral-White-Matter",
+    43: "Right-Lateral-Ventricle",
+    44: "Right-Inf-Lat-Vent",
+    46: "Right-Cerebellum-White-Matter",
+    47: "Right-Cerebellum-Cortex",
+    49: "Right-Thalamus-Proper",
+    50: "Right-Caudate",
+    51: "Right-Putamen",
+    52: "Right-Pallidum",
+    53: "Right-Hippocampus",
+    54: "Right-Amygdala",
+    58: "Right-Accumbens-area",
+    60: "Right-VentralDC",
+    62: "Right-vessel",
+    63: "Right-choroid-plexus",
+    72: "5th-Ventricle",
+    77: "WM-hypointensities",
+    85: "Optic-Chiasm",
+    251: "CC_Posterior",
+    252: "CC_Mid_Posterior",
+    253: "CC_Central",
+    254: "CC_Mid_Anterior",
+    255: "CC_Anterior",
+}
+
+# Cortical labels (Desikan-Killiany). Codes 1000-1035 = left, 2000-2035 = right.
+_DK_CORTICAL: dict[int, str] = {
+     1: "bankssts",                  2: "caudalanteriorcingulate",
+     3: "caudalmiddlefrontal",       5: "cuneus",
+     6: "entorhinal",                7: "fusiform",
+     8: "inferiorparietal",          9: "inferiortemporal",
+    10: "isthmuscingulate",         11: "lateraloccipital",
+    12: "lateralorbitofrontal",     13: "lingual",
+    14: "medialorbitofrontal",      15: "middletemporal",
+    16: "parahippocampal",          17: "paracentral",
+    18: "parsopercularis",          19: "parsorbitalis",
+    20: "parstriangularis",         21: "pericalcarine",
+    22: "postcentral",              23: "posteriorcingulate",
+    24: "precentral",               25: "precuneus",
+    26: "rostralanteriorcingulate", 27: "rostralmiddlefrontal",
+    28: "superiorfrontal",          29: "superiorparietal",
+    30: "superiortemporal",         31: "supramarginal",
+    32: "frontalpole",              33: "temporalpole",
+    34: "transversetemporal",       35: "insula",
+}
+
+
+def _aseg_code_to_name(code: int) -> str:
+    """Translate any FreeSurfer ASEG/DK code to a human-readable name."""
+    if 1000 <= code <= 1099:
+        return f"ctx-lh-{_DK_CORTICAL.get(code - 1000, f'unknown-{code-1000}')}"
+    if 2000 <= code <= 2099:
+        return f"ctx-rh-{_DK_CORTICAL.get(code - 2000, f'unknown-{code-2000}')}"
+    return _ASEG_SUBCORTICAL.get(int(code), f"Unknown ({int(code)})")
+
+
+def _aseg_group(code: int) -> str:
+    """Classify an ASEG label code into a clinical group for the UI."""
+    if 1000 <= code <= 2099:
+        return "cortical"
+    if code in (17, 53):
+        return "subcortical-limbic"   # hippocampus
+    if code in (18, 54):
+        return "subcortical-limbic"   # amygdala
+    if code in (10, 49):
+        return "thalamus"
+    if code in (11, 50, 12, 51, 13, 52, 26, 58):
+        return "basal-ganglia"
+    if code in (2, 41, 77):
+        return "white-matter"
+    if code in (4, 43, 14, 15, 24, 5, 44, 72, 31, 63):
+        return "ventricle-csf"
+    if code in (7, 8, 46, 47):
+        return "cerebellum"
+    if code == 16:
+        return "brain-stem"
+    if code in (28, 60, 85, 30, 62) or 251 <= code <= 255:
+        return "other"
+    return "unknown"
+
+
+def _find_nearest_labeled_voxel(
+    aseg_data: np.ndarray,
+    vox: np.ndarray,
+    radius: int = 3,
+) -> int:
+    """Search a cubic neighbourhood for the nearest non-zero label.
+
+    Returns the label code at the nearest non-zero voxel within `radius`,
+    or 0 if everything in the neighbourhood is unlabelled. This rescues
+    electrodes whose centroid falls on a boundary voxel (e.g. between
+    grey matter and the pial surface) where the volumetric atlas isn't
+    defined but a labelled voxel sits 1–2 mm away.
+    """
+    shape = np.array(aseg_data.shape)
+    best_code, best_dist2 = 0, None
+    for dx in range(-radius, radius + 1):
+        for dy in range(-radius, radius + 1):
+            for dz in range(-radius, radius + 1):
+                v = np.clip(vox + np.array([dx, dy, dz]), 0, shape - 1)
+                code = int(aseg_data[tuple(v)])
+                if code == 0:
+                    continue
+                d2 = dx * dx + dy * dy + dz * dz
+                if best_dist2 is None or d2 < best_dist2:
+                    best_code, best_dist2 = code, d2
+    return best_code
+
+
+def lookup_aseg(
+    electrodes: list[dict],
+    aseg_path: str,
+    coord_key: str = "centroid_mm",
+    frame: str = "tkr",
+    search_radius: int = 5,
+) -> list[dict]:
+    """
+    Assign Desikan-Killiany + subcortical labels to every electrode by
+    sampling the FreeSurfer `aparc+aseg.mgz` volume.
+
+    Args:
+        electrodes: Pipeline electrode list. Each entry must carry a coordinate
+                    at `coord_key`. By default uses `centroid_mm` in tkRAS
+                    (the frame the pial surface and BA lookup already work in).
+        aseg_path:  Path to `<subject>/mri/aparc+aseg.mgz`.
+        coord_key:  Which coordinate field to sample.
+        frame:      Either "tkr" (FreeSurfer surface RAS, default) or "scanner"
+                    (original NIfTI scanner RAS). Must match `coord_key`.
+
+    Returns:
+        Electrodes with added fields:
+            - aseg_code  (int)  FreeSurfer label code (0 = Unknown)
+            - aseg_label (str)  Human-readable name (e.g. "Left-Hippocampus",
+                                "ctx-lh-precentral", "Left-Cerebral-White-Matter")
+            - aseg_group (str)  Clinical bucket — one of: cortical, subcortical-limbic,
+                                basal-ganglia, thalamus, white-matter, ventricle-csf,
+                                cerebellum, brain-stem, other, unknown
+
+    Why tkRAS by default
+    --------------------
+    The aparc+aseg.mgz volume lives in FreeSurfer's conformed space and exposes
+    two voxel→world transforms via its header:
+        - get_vox2ras()       — conformed scanner RAS
+        - get_vox2ras_tkr()   — tkRAS (origin at FOV centre, used by surfaces)
+
+    The pipeline converts electrodes to tkRAS for surface snapping (in main.py)
+    and stores the result in `centroid_mm`. Using tkRAS here keeps a single
+    coordinate frame end-to-end and avoids depending on whether the upstream
+    `centroid_scanner_mm` field was populated.
+    """
+    aseg_img  = nib.load(str(aseg_path))
+    aseg_data = aseg_img.get_fdata()
+    if frame == "tkr":
+        vox2world = aseg_img.header.get_vox2ras_tkr()
+    elif frame == "scanner":
+        vox2world = aseg_img.affine
+    else:
+        raise ValueError(f"frame must be 'tkr' or 'scanner', got {frame!r}")
+    inv_aff = np.linalg.inv(vox2world)
+    shape   = np.array(aseg_data.shape)
+
+    out: list[dict] = []
+    for elec in electrodes:
+        coord = elec.get(coord_key)
+        if coord is None:
+            out.append({**elec, "aseg_code": 0, "aseg_label": "Unknown",
+                        "aseg_group": "unknown"})
+            continue
+        vox = inv_aff @ np.append(np.asarray(coord, float), 1.0)
+        vox_int = np.clip(np.round(vox[:3]).astype(int), 0, shape - 1)
+        code = int(aseg_data[tuple(vox_int)])
+        # Fall back to the nearest labelled voxel within search_radius if the
+        # centroid landed on a code-0 boundary voxel.
+        if code == 0 and search_radius > 0:
+            code = _find_nearest_labeled_voxel(aseg_data, vox_int, search_radius)
+        out.append({
+            **elec,
+            "aseg_code":  code,
+            "aseg_label": _aseg_code_to_name(code),
+            "aseg_group": _aseg_group(code),
+        })
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Task 3.3 – Validation
 # ──────────────────────────────────────────────────────────────────────────────
 

@@ -25,6 +25,7 @@ from src.segmentation import segment_electrodes, correct_brain_shift
 from src.labeling import (
     normalize_to_mni,
     lookup_brodmann_surface,
+    lookup_aseg,
     compute_euclidean_error,
     export_report,
 )
@@ -181,6 +182,17 @@ def run_pipeline(args: argparse.Namespace) -> None:
         rh_annot_path=str(subj_dir / "label" / "rh.BA_exvivo.annot"),
         n_lh_vertices=len(lh_verts),
     )
+
+    # Volumetric labeling (Desikan-Killiany + subcortical) — fills in every
+    # electrode, including deep / non-cortical contacts that BA_exvivo misses.
+    aseg_path = subj_dir / "mri" / "aparc+aseg.mgz"
+    if aseg_path.exists():
+        electrodes = lookup_aseg(electrodes, str(aseg_path))
+        n_labeled = sum(1 for e in electrodes if e.get("aseg_code", 0) != 0)
+        print(f"ASEG labels assigned: {n_labeled}/{len(electrodes)} electrodes")
+    else:
+        print(f"[WARNING] aparc+aseg.mgz not found at {aseg_path} — "
+              "skipping volumetric labeling.")
 
     for e in electrodes:
         print(f"  Electrode {e['id']:>2d} | "

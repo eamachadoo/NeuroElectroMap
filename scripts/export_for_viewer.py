@@ -64,6 +64,65 @@ _UNLABELED = ("Unlabeled", "unknown", "#555a66")
 # (kept consistent with `src/labeling.lookup_brodmann_surface`).
 _EXVIVO_MAP: dict[str, int] = {"V1": 17, "V2": 18, "V3": 19, "MT": 21}
 
+# Desikan-Killiany cortical sub-region name → schematic region id.
+# Lets aseg-cortical electrodes (no BA mapping) still appear on the 2D schematic
+# in their best-matching anatomical area instead of being banished to the pool.
+# `None` means "no schematic match — keep in the pool" (e.g. insula is medial,
+# not on a lateral schematic).
+_DK_TO_SCHEMATIC: dict[str, str | None] = {
+    # Motor / somatosensory
+    "precentral":               "precentral",
+    "paracentral":              "precentral",
+    "postcentral":              "postcentral",
+    # Frontal
+    "superiorfrontal":          "frontal",
+    "rostralmiddlefrontal":     "frontal",
+    "caudalmiddlefrontal":      "frontal",
+    "lateralorbitofrontal":     "frontal",
+    "medialorbitofrontal":      "frontal",
+    "frontalpole":              "frontal",
+    "rostralanteriorcingulate": "frontal",
+    "caudalanteriorcingulate":  "frontal",
+    # Broca's
+    "parsopercularis":          "broca",
+    "parstriangularis":         "broca",
+    "parsorbitalis":            "broca",
+    # Parietal
+    "superiorparietal":         "parietal",
+    "inferiorparietal":         "parietal",
+    "precuneus":                "parietal",
+    "posteriorcingulate":       "parietal",
+    "isthmuscingulate":         "parietal",
+    "supramarginal":            "supramarginal",
+    "bankssts":                 "supramarginal",
+    # Temporal
+    "superiortemporal":         "superior-temporal",
+    "transversetemporal":       "superior-temporal",
+    "middletemporal":           "temporal",
+    "inferiortemporal":         "temporal",
+    "temporalpole":             "temporal",
+    "fusiform":                 "temporal",
+    "entorhinal":               "temporal",
+    "parahippocampal":          "temporal",
+    # Occipital
+    "lateraloccipital":         "occipital",
+    "cuneus":                   "occipital",
+    "lingual":                  "occipital",
+    "pericalcarine":            "occipital",
+    # Insula is medial-deep — no good lateral-schematic location, stays in pool
+    "insula":                   None,
+}
+
+
+def _schematic_id_from_aseg_label(aseg_label: str) -> str | None:
+    """Derive a schematic region id from a Desikan-Killiany label like
+    'ctx-lh-precentral' or 'ctx-rh-superiortemporal'. Returns None when no
+    good schematic match exists (electrode stays in the pool)."""
+    if not aseg_label.startswith(("ctx-lh-", "ctx-rh-")):
+        return None
+    sub = aseg_label[len("ctx-lh-"):]  # same length for both hemispheres
+    return _DK_TO_SCHEMATIC.get(sub)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Annotation parsing
@@ -214,6 +273,16 @@ def export_viewer_data(
     for e in electrodes:
         ba = int(e.get("brodmann_area", 0))
         group, schematic_id, _ = BA_GROUPS.get(ba, _UNLABELED)
+        # When BA didn't yield a schematic match, try the volumetric atlas:
+        # a cortical aseg label (e.g. ctx-lh-precentral) can place the
+        # electrode in the matching schematic region.
+        if schematic_id == "unknown":
+            aseg_label = str(e.get("aseg_label", ""))
+            sch_from_aseg = _schematic_id_from_aseg_label(aseg_label)
+            if sch_from_aseg:
+                schematic_id = sch_from_aseg
+                # Keep `group` as "Unlabeled" so the UI knows there's no BA,
+                # but the electrode now lives on the schematic.
         centroid = np.asarray(e.get("centroid_mm", [0.0, 0.0, 0.0]))
         corrected = np.asarray(e.get("corrected_mm", centroid))
         mni = e.get("mni_mm")
@@ -227,6 +296,11 @@ def export_viewer_data(
             "anatomy_label": str(e.get("anatomy_label", "")),
             "group":         group,
             "schematic_id":  schematic_id,
+            # Volumetric Desikan-Killiany / ASEG labels (filled in by lookup_aseg
+            # in src/labeling.py — present when the pipeline ran with aparc+aseg.mgz)
+            "aseg_code":     int(e.get("aseg_code", 0)),
+            "aseg_label":    str(e.get("aseg_label", "")),
+            "aseg_group":    str(e.get("aseg_group", "unknown")),
         })
 
     # ── Region metadata for the legend + 2D schematic ───────────────────────

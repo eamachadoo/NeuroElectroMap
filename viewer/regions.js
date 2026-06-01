@@ -55,3 +55,110 @@ window.nemRegionInfo = function (ba) {
     schematic_id: (fromData && fromData.schematic_id) || "unknown",
   };
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// ASEG clinical groups for deep / non-cortical electrodes.
+// Each electrode's `aseg_group` (from src/labeling.lookup_aseg) maps to
+// one of these for the "Deep / Subcortical" pool in brain2d.jsx.
+// `order` controls left-to-right placement in the pool.
+// ─────────────────────────────────────────────────────────────────────
+window.NEM_ASEG_GROUPS = {
+  "subcortical-limbic":   { label: "Limbic",          short: "Limbic",     color: "#9B7BC4", order: 1,
+                            description: "Hippocampus, amygdala — memory and emotion." },
+  "thalamus":             { label: "Thalamus",        short: "Thalamus",   color: "#5DB0A7", order: 2,
+                            description: "Sensory relay and consciousness." },
+  "basal-ganglia":        { label: "Basal ganglia",   short: "BG",         color: "#E0A94E", order: 3,
+                            description: "Caudate, putamen, pallidum, accumbens." },
+  "white-matter":         { label: "White matter",    short: "WM",         color: "#8893A8", order: 4,
+                            description: "Cerebral white matter (axonal tracts)." },
+  "ventricle-csf":        { label: "Ventricle / CSF", short: "Vent.",      color: "#6E93C8", order: 5,
+                            description: "Lateral, 3rd, 4th ventricles, CSF." },
+  "cerebellum":           { label: "Cerebellum",      short: "Cerebellum", color: "#C77FA8", order: 6,
+                            description: "Cerebellar cortex / white matter." },
+  "brain-stem":           { label: "Brain stem",      short: "Stem",       color: "#7A8696", order: 7,
+                            description: "Midbrain, pons, medulla." },
+  "cortical":             { label: "Cortical",        short: "Cortex",     color: "#3FA39A", order: 0,
+                            description: "Desikan-Killiany cortical parcels (already shown on schematic)." },
+  "other":                { label: "Other",           short: "Other",      color: "#555a66", order: 8,
+                            description: "Vessels, optic chiasm, corpus callosum, etc." },
+  "unknown":              { label: "Unknown",         short: "?",          color: "#3a4250", order: 9,
+                            description: "Outside the segmented volume." },
+};
+
+window.nemAsegInfo = function (group) {
+  return window.NEM_ASEG_GROUPS[group] || window.NEM_ASEG_GROUPS["unknown"];
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// Schematic 2D lateral brain geometry.
+// SVG paths adapted from the design hand-off (left hemisphere, lateral view,
+// viewBox 0 0 600 460). Each `id` matches a `schematic_id` produced by the
+// Python export (scripts/export_for_viewer.py:BA_GROUPS).
+//
+// Order matters for rendering: lobes are drawn first (under), specialised
+// sub-regions on top. The clipPath in brain2d.jsx restricts cortical regions
+// to the silhouette outline.
+// ─────────────────────────────────────────────────────────────────────
+window.NEM_SCHEMATIC = {
+  silhouette:
+    "M64,262 C58,196 92,150 150,118 C212,80 312,72 392,92 C470,112 540,150 546,222 "
+    + "C549,258 533,286 500,298 C490,322 466,330 440,330 C400,332 360,352 312,360 "
+    + "C270,366 226,360 186,344 C150,332 92,320 64,288 C60,280 60,270 64,262 Z",
+
+  // viewBox: 0 0 600 460. Frontal pole on the left.
+  regions: [
+    // ─── Lobes (drawn first, under sub-regions) ───
+    {
+      id: "frontal", label: [148, 178], spread: 34,
+      group: "Frontal lobe", description: "Executive function, planning, voluntary movement.",
+      path: "M255,86 L255,40 L20,30 L0,330 L120,300 L210,275 L284,236 L278,212 L266,150 Z",
+    },
+    {
+      id: "parietal", label: [405, 150], spread: 30,
+      group: "Parietal lobe", description: "Sensory integration and spatial awareness.",
+      path: "M322,82 L332,150 L342,212 L348,233 L400,236 L466,220 L460,160 L452,104 L452,40 L322,40 Z",
+    },
+    {
+      id: "occipital", label: [508, 172], spread: 26,
+      group: "Occipital lobe", description: "Visual processing.",
+      path: "M452,104 L460,160 L466,220 L466,248 L600,300 L600,40 L452,40 Z",
+    },
+    {
+      id: "temporal", label: [222, 322], spread: 34,
+      group: "Temporal lobe", description: "Auditory processing, memory, language.",
+      path: "M120,300 L210,275 L300,255 L360,242 L400,236 L430,300 L390,365 L300,368 L190,360 L100,335 L0,335 L0,300 Z",
+    },
+
+    // ─── Specialised sub-regions (drawn on top) ───
+    {
+      id: "precentral", label: [282, 150], spread: 14,
+      group: "Primary motor cortex", description: "Initiates voluntary muscle movement.",
+      path: "M255,86 L266,150 L278,212 L284,236 L312,234 L308,210 L300,150 L292,78 Z",
+    },
+    {
+      id: "postcentral", label: [333, 150], spread: 14,
+      group: "Primary somatosensory cortex", description: "Touch, pressure and proprioception.",
+      path: "M292,78 L300,150 L308,210 L312,234 L348,233 L342,212 L332,150 L322,82 Z",
+    },
+    {
+      id: "superior-temporal", label: [258, 286], spread: 12,
+      group: "Superior temporal gyrus", description: "Auditory cortex and language comprehension (Wernicke's).",
+      path: "M120,300 L210,275 L300,255 L360,242 L400,236 L405,262 L362,272 L300,284 L210,300 L122,322 Z",
+    },
+    {
+      id: "broca", label: [178, 268], spread: 10,
+      group: "Broca's area", description: "Speech production and language expression.",
+      path: "M148,250 L210,250 L213,276 L175,290 L143,278 Z",
+    },
+    {
+      id: "supramarginal", label: [419, 244], spread: 8,
+      group: "Supramarginal gyrus", description: "Phonological processing.",
+      path: "M398,232 L430,228 L441,252 L412,263 L394,248 Z",
+    },
+    {
+      id: "angular", label: [456, 262], spread: 8,
+      group: "Angular gyrus", description: "Reading, math, attention to space.",
+      path: "M438,250 L469,242 L479,268 L450,281 L431,268 Z",
+    },
+  ],
+};
