@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+        include:
+          # Single macOS job on the dev Python — catches platform-specific
+          # issues (path handling, certificate stores, MGZ endianness, ...).
+          - os: macos-latest
+            python: "3.13"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Verify all packages import cleanly
+        run: |
+          python -c "import src.loader, src.labeling, src.registration, src.segmentation, src.visualization"
+          python -c "import scripts.export_for_viewer, scripts.dev_server"
+          python -c "from scripts.launch_desktop import _start_server, _pick_free_port"
+
+      - name: Run test suite
+        run: pytest tests/ -v
+
+      - name: Smoke test viewer export helpers
+        run: |
+          python - <<'EOF'
+          # Catches API drift in the Python → JS bridge without needing the
+          # full FreeSurfer dataset on disk.
+          from scripts.export_for_viewer import (
+              _annot_name_to_ba, BA_GROUPS, _UNLABELED,
+              _schematic_id_from_aseg_label,
+          )
+
+          # BA name parsing — same logic the viewer relies on
+          assert _annot_name_to_ba("BA22_exvivo") == 22, "BA<n>_exvivo parsing"
+          assert _annot_name_to_ba("V1_exvivo")   == 17, "V1_exvivo → BA 17"
+          assert _annot_name_to_ba("MT_exvivo")   == 21, "MT_exvivo → BA 21"
+          assert _annot_name_to_ba("unknown")     == 0,  "unlabelled vertex"
+
+          # Schematic remap from Desikan-Killiany — drives 2D placement
+          assert _schematic_id_from_aseg_label("ctx-lh-precentral")      == "precentral"
+          assert _schematic_id_from_aseg_label("ctx-rh-superiortemporal") == "superior-temporal"
+          assert _schematic_id_from_aseg_label("ctx-lh-insula")           is None
+          assert _schematic_id_from_aseg_label("Left-Hippocampus")        is None
+
+          # BA_GROUPS shape — viewer assumes (group, schematic_id, color)
+          assert all(len(v) == 3 for v in BA_GROUPS.values()), "BA_GROUPS triples"
+          assert len(_UNLABELED) == 3
+
+          print("Viewer export helpers OK")
+          EOF
+
+      - name: Smoke test desktop launcher (HTTP server without GUI)
+        run: |
+          python - <<'EOF'
+          # Verifies the desktop launcher's local server boots and serves the
+          # viewer. We deliberately don't import `webview` here so the test
+          # also runs on the matrix Pythons without installing pywebview.
+          from scripts.launch_desktop import _start_server, _pick_free_port
+          import urllib.request
+
+          # _pick_free_port should return a usable loopback port
+          port = _pick_free_port()
+          assert isinstance(port, int) and port > 0
+
+          server, served_port = _start_server()
+          try:
+              body = urllib.request.urlopen(
+                  f"http://127.0.0.1:{served_port}/viewer/index.html",
+                  timeout=2,
+              ).read().decode()
+              assert "NeuroElectroMap" in body, "index.html missing brand"
+              assert "brain3d.jsx" in body,     "index.html missing brain3d ref"
+
+              # Cache-Control header should disable HTTP caching (dev affordance)
+              resp = urllib.request.urlopen(
+                  f"http://127.0.0.1:{served_port}/viewer/index.html", timeout=2,
+              )
+              cc = resp.headers.get("Cache-Control", "")
+              assert "no-cache" in cc, f"missing no-cache, got: {cc!r}"
+              print(f"Desktop launcher server OK on port {served_port}")
+          finally:
+              server.shutdown()
+              server.server_close()
+          EOF

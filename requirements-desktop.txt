@@ -1,0 +1,4 @@
+# Desktop launcher (optional)
+# Install with: make install-desktop
+# Run with:    make desktop
+pywebview>=5.0
