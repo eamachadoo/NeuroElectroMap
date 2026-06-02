@@ -306,6 +306,14 @@ function Brain2D(props) {
                 style={{
                   cursor: isPresent ? "pointer" : "default",
                   transition: "fill-opacity .15s, stroke .15s, stroke-width .15s",
+                  // Sub-regions like "superior-temporal" are drawn on top of
+                  // their parent lobe ("temporal"). When the sub-region has
+                  // no BA in this patient, leaving it as a normal path means
+                  // it silently swallows clicks meant for the lobe behind it
+                  // (cursor stays default, onClick is a no-op, but the SVG
+                  // event still hits the topmost path). Disabling pointer
+                  // events on inactive paths lets the click fall through.
+                  pointerEvents: isPresent ? "auto" : "none",
                 }}
                 onMouseEnter={() => {
                   if (!isPresent) return;
