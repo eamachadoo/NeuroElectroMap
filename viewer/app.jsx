@@ -99,8 +99,18 @@ function ThemeToggle({ theme, onChange }) {
 /* ───────────────────────────── legend ──────────────────────────────── */
 
 function Legend({ regions, hoveredBA, onHover, onSelect }) {
+  // Sort by schematic region first, then by BA number. BAs that share a
+  // colour (because they belong to the same anatomical area on the 2D
+  // schematic — e.g. BA 1, 2, 3 all share the postcentral green) end up
+  // next to each other in the legend instead of being scattered, which
+  // matches the colour grouping users see on the brain.
   const list = useMemo(
-    () => Object.values(regions).sort((a, b) => a.ba - b.ba),
+    () => Object.values(regions).sort((a, b) => {
+      const sa = a.schematic_id || "";
+      const sb = b.schematic_id || "";
+      if (sa !== sb) return sa.localeCompare(sb);
+      return a.ba - b.ba;
+    }),
     [regions]
   );
   if (list.length === 0) return null;
