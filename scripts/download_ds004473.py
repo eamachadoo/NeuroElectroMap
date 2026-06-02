@@ -30,6 +30,14 @@ def files_for_subject(sub: str) -> list[str]:
     return [
         f"{sub}/anat/{sub}_T1w.nii.gz",
         f"{sub}/anat/{sub}_ct.nii.gz",
+        # Ground-truth electrode positions. The ACPC file is preferred — it
+        # lives in the same coordinate frame as T1.mgz (and the pial surface)
+        # so the pipeline can use the coordinates directly without a buggy
+        # scanner→tkRAS step. The ScanRAS file is kept for compatibility.
+        f"{sub}/ieeg/{sub}_space-ACPC_electrodes.tsv",
+        f"{sub}/ieeg/{sub}_space-ACPC_coordsystem.json",
+        f"{sub}/ieeg/{sub}_space-ScanRAS_electrodes.tsv",
+        f"{sub}/ieeg/{sub}_space-ScanRAS_coordsystem.json",
         f"{fs}/mri/T1.mgz",
         f"{fs}/mri/transforms/talairach.xfm",
         f"{fs}/surf/lh.pial",
@@ -54,23 +62,49 @@ def _progress(count, block_size, total_size):
 
 
 def _download_one(rel_path: str) -> None:
+    """Download `rel_path` from OpenNeuro S3 into `DEST/rel_path`.
+
+    The write is **atomic**: bytes go to `<dest>.partial` and are only renamed
+    to the final name after the transfer completes. If the transfer is
+    interrupted (Ctrl+C, network drop, OOM), the partial file is removed and
+    the next invocation will retry — there is no risk of `pipeline corrupted
+    data masquerading as a complete download`.
+    """
     dest_file = DEST / rel_path
     dest_file.parent.mkdir(parents=True, exist_ok=True)
+
     # The OpenNeuro dataset ships as git-annex symlinks. If the symlink
     # was never resolved (broken) we need to drop it before writing the
     # downloaded blob — urllib.urlretrieve can't write through a dangling link.
     if dest_file.is_symlink() and not dest_file.exists():
         dest_file.unlink()
+    # Same for an empty placeholder left behind by an earlier failed run.
+    if dest_file.exists() and dest_file.stat().st_size == 0:
+        dest_file.unlink()
+
     if dest_file.exists() and dest_file.stat().st_size > 1000:
         print(f"  ✓  {rel_path}  (already present, skipping)")
         return
+
     url = f"{BASE_URL}/{urllib.parse.quote(rel_path)}"
+    partial = dest_file.with_name(dest_file.name + ".partial")
+    # Always start from a clean slate — leftover .partial from a previous
+    # crashed run is meaningless and would only confuse the progress bar.
+    if partial.exists():
+        partial.unlink()
+
     print(f"  ↓  {rel_path}")
     try:
-        urllib.request.urlretrieve(url, dest_file, reporthook=_progress)
+        urllib.request.urlretrieve(url, partial, reporthook=_progress)
+        # Atomic rename: either the file shows up complete, or not at all.
+        partial.replace(dest_file)
         size_mb = dest_file.stat().st_size / (1024 * 1024)
         print(f"\r  ✓  {rel_path}  ({size_mb:.1f} MB)")
     except Exception as exc:
+        # Tidy up the half-written file so the user isn't tricked into
+        # thinking a partial download is a complete one.
+        if partial.exists():
+            partial.unlink()
         print(f"\r  ✗  {rel_path}  FAILED: {exc}", file=sys.stderr)
         sys.exit(1)
 

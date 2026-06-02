@@ -99,28 +99,57 @@ function ThemeToggle({ theme, onChange }) {
 /* ───────────────────────────── legend ──────────────────────────────── */
 
 function Legend({ regions, hoveredBA, onHover, onSelect }) {
+  // Sort by schematic region first, then by BA number. BAs that share a
+  // colour (because they belong to the same anatomical area on the 2D
+  // schematic — e.g. BA 1, 2, 3 all share the postcentral green) end up
+  // next to each other in the legend instead of being scattered, which
+  // matches the colour grouping users see on the brain.
   const list = useMemo(
-    () => Object.values(regions).sort((a, b) => a.ba - b.ba),
+    () => Object.values(regions).sort((a, b) => {
+      const sa = a.schematic_id || "";
+      const sb = b.schematic_id || "";
+      if (sa !== sb) return sa.localeCompare(sb);
+      return a.ba - b.ba;
+    }),
     [regions]
   );
+  // Default collapsed so the legend never overlaps the deep / subcortical
+  // pool that sits at the bottom of the 2D brain. Last toggle persists in
+  // localStorage so power users don't have to re-expand on every load.
+  const [expanded, setExpanded] = useState(() => {
+    return localStorage.getItem("nem-legend-expanded") === "1";
+  });
+  useEffect(() => {
+    localStorage.setItem("nem-legend-expanded", expanded ? "1" : "0");
+  }, [expanded]);
   if (list.length === 0) return null;
   return (
-    <div className="legend">
-      <div className="legend-t">Brodmann areas present ({list.length})</div>
-      <div className="legend-grid">
-        {list.map((r) => (
-          <button
-            key={r.ba}
-            className={"leg" + (hoveredBA === r.ba ? " on" : "")}
-            onMouseEnter={() => onHover(r.ba)}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onSelect(r.ba)}
-          >
-            <span className="leg-dot" style={{ background: r.color }} />
-            <span className="leg-l">BA {r.ba} — {r.name}</span>
-          </button>
-        ))}
-      </div>
+    <div className={"legend " + (expanded ? "expanded" : "collapsed")}>
+      <button
+        className="legend-head"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        title={expanded ? "Collapse legend" : "Expand legend"}
+      >
+        Brodmann areas present ({list.length})
+        <span className="legend-caret" aria-hidden="true">▲</span>
+      </button>
+      {expanded && (
+        <div className="legend-grid">
+          {list.map((r) => (
+            <button
+              key={r.ba}
+              className={"leg" + (hoveredBA === r.ba ? " on" : "")}
+              onMouseEnter={() => onHover(r.ba)}
+              onMouseLeave={() => onHover(null)}
+              onClick={() => onSelect(r.ba)}
+            >
+              <span className="leg-dot" style={{ background: r.color }} />
+              <span className="leg-l">BA {r.ba} — {r.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

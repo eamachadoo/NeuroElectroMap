@@ -149,9 +149,9 @@ function RegionDetail({ region, regionElectrodes, schematicElectrodes,
         <div className="elist">
           {regionElectrodes.map((e) => (
             <button key={e.id} className="erow" onClick={() => onSelectElectrode(e.id)}>
-              <span className="erow-id">E{e.id}</span>
+              <span className="erow-id">{window.nemElecLabel(e.id)}</span>
               <span className="erow-anat" title={e.anatomy_label}>{e.anatomy_label || "—"}</span>
-              <span className="erow-shift">{e.shift_mm.toFixed(1)} mm</span>
+              <span className="erow-shift">{(e.pial_distance_mm ?? e.shift_mm).toFixed(1)} mm</span>
               <span className="chev">›</span>
             </button>
           ))}
@@ -168,9 +168,9 @@ function RegionDetail({ region, regionElectrodes, schematicElectrodes,
           <div className="elist">
             {schematicElectrodes.map((e) => (
               <button key={e.id} className="erow" onClick={() => onSelectElectrode(e.id)}>
-                <span className="erow-id">E{e.id}</span>
+                <span className="erow-id">{window.nemElecLabel(e.id)}</span>
                 <span className="erow-anat" title={e.aseg_label}>{e.aseg_label || "—"}</span>
-                <span className="erow-shift">{e.shift_mm.toFixed(1)} mm</span>
+                <span className="erow-shift">{(e.pial_distance_mm ?? e.shift_mm).toFixed(1)} mm</span>
                 <span className="chev">›</span>
               </button>
             ))}
@@ -196,9 +196,9 @@ function ElectrodeDetail({ elec, region, onBackToRegion, onBackToOverview, onGoT
       </button>
 
       <div className="ed-head">
-        <div className="ed-badge">E{elec.id}</div>
+        <div className="ed-badge">{window.nemElecLabel(elec.id)}</div>
         <div>
-          <h2 className="p-title">Electrode E{elec.id}</h2>
+          <h2 className="p-title">Electrode {window.nemElecLabel(elec.id)}</h2>
           {hasBA ? (
             <button className="reglink" onClick={onGoToRegion}>
               <span className="reglink-dot" style={{ background: region.color }} />
@@ -232,8 +232,10 @@ function ElectrodeDetail({ elec, region, onBackToRegion, onBackToOverview, onGoT
               <div className="attr-v">BA {elec.brodmann_area}</div>
             </div>
             <div className="attr">
-              <div className="attr-k">Shift correction</div>
-              <div className="attr-v">{elec.shift_mm.toFixed(2)} mm</div>
+              <div className="attr-k">Distance from cortex</div>
+              <div className="attr-v">
+                {(elec.pial_distance_mm ?? elec.shift_mm).toFixed(2)} mm
+              </div>
             </div>
           </>
         ) : (
@@ -243,8 +245,10 @@ function ElectrodeDetail({ elec, region, onBackToRegion, onBackToOverview, onGoT
               <div className="attr-v" style={{ fontFamily: "inherit" }}>{asegInfo.label}</div>
             </div>
             <div className="attr">
-              <div className="attr-k">Shift correction</div>
-              <div className="attr-v">{elec.shift_mm.toFixed(2)} mm</div>
+              <div className="attr-k">Distance from cortex</div>
+              <div className="attr-v">
+                {(elec.pial_distance_mm ?? elec.shift_mm).toFixed(2)} mm
+              </div>
             </div>
           </>
         )}

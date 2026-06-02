@@ -39,6 +39,17 @@ window.NEM_BA_INFO = {
 // Default fallback used when a BA we don't have metadata for shows up.
 window.NEM_BA_FALLBACK = { name: "Unknown region", fn: "No clinical annotation available." };
 
+// Helper: human-readable display label for an electrode.
+//   • Numeric ids (legacy CT-segmentation output, "1", "2", "57") get an
+//     "E" prefix so they read as "E1", "E57".
+//   • Clinical names from a BIDS *_electrodes.tsv ("LSMA14", "RAHIPP3") are
+//     shown as-is. Prepending "E" turned "LSMA" into "ELSMA" in the 3D
+//     labels and confused at least one professor.
+window.nemElecLabel = function (id) {
+  const s = String(id);
+  return /^\d+$/.test(s) ? "E" + s : s;
+};
+
 // Helper: read a BA from window.NEM_DATA.regions if present, else NEM_BA_INFO,
 // else a generic fallback. Returns a uniform { ba, name, fn, group, color }.
 window.nemRegionInfo = function (ba) {

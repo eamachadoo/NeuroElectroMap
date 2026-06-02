@@ -14,19 +14,54 @@ from skimage.measure import label, regionprops
 # Task 2.2 – Electrode Segmentation
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _region_elongation(region) -> float:
+    """Approximate aspect ratio of a 3D connected component.
+
+    Uses sqrt(λ_max / λ_min) of the inertia-tensor eigenvalues:
+      • A perfect sphere has λ_max = λ_min ⇒ elongation = 1.0
+      • A cable / rod has λ_max ≫ λ_min ⇒ elongation > 5
+      • A flat disc-like artifact has one eigval ≪ others ⇒ also large
+
+    Returns +∞ for degenerate components whose smallest eigenvalue is 0
+    (single-voxel slabs etc.) so the caller can safely filter them out.
+    """
+    eigs = sorted(region.inertia_tensor_eigvals, reverse=True)
+    if eigs[-1] <= 0:
+        return float("inf")
+    return float(np.sqrt(eigs[0] / eigs[-1]))
+
+
 def segment_electrodes(
     ct_img: nib.Nifti1Image,
     hu_threshold: float = 3000.0,
     min_voxels: int = 3,
     max_voxels: int = 500,
+    max_elongation: float = 5.0,
 ) -> list[dict]:
-    """
-    Detect electrode centroids from a CT image using:
+    """Detect electrode centroids from a CT image.
+
+    Pipeline:
       1. Global HU threshold (metallic implants > 3000 HU).
       2. 3D Connected Component Analysis to isolate individual contacts.
+      3. Size filter (`min_voxels` ≤ voxels ≤ `max_voxels`) drops noise
+         (tiny salt-and-pepper artefacts) and very large blobs (skull
+         hardware, scanner table mounts).
+      4. **Shape filter** (`max_elongation`) drops thin elongated
+         components — typically the cable/wire segments that run from the
+         implanted contacts up through the scalp to the external connectors.
+         These metal cables read just as bright as the contacts in CT and
+         end up in the same size range as a real depth contact (~3-50 vox).
+         Without this filter every patient ends up with a long tail of
+         non-anatomical "electrodes" that mostly fall outside the brain
+         in the viewer's "Unknown" pool.
+
+    The default `max_elongation=5.0` was tuned against ds004473 sub-12:
+    it removes the ~15 most obvious cable components while leaving all
+    contacts that have a plausibly-spherical shape intact. Pass a larger
+    value (e.g. 10) to disable the shape filter for a debug run.
 
     Returns:
-        List of dicts: {id, centroid_vox, centroid_mm, n_voxels}
+        List of dicts: {id, centroid_vox, centroid_mm, n_voxels, elongation}
     """
     ct_data = ct_img.get_fdata()
     affine = ct_img.affine
@@ -39,14 +74,20 @@ def segment_electrodes(
 
     regions = regionprops(labeled_array)
     electrodes = []
+    dropped_size  = 0
+    dropped_shape = 0
 
     for region in regions:
         n_vox = region.area
         if not (min_voxels <= n_vox <= max_voxels):
-            continue  # Filter noise and large metal artifacts
+            dropped_size += 1
+            continue
+        elongation = _region_elongation(region)
+        if elongation > max_elongation:
+            dropped_shape += 1
+            continue
 
         centroid_vox = np.array(region.centroid)
-
         # Ptarget = M_affine · Psource  (voxel → world mm)
         centroid_hom = np.append(centroid_vox, 1.0)
         centroid_mm = (affine @ centroid_hom)[:3]
@@ -56,9 +97,13 @@ def segment_electrodes(
             "centroid_vox": centroid_vox,
             "centroid_mm": centroid_mm,
             "n_voxels": n_vox,
+            "elongation": elongation,
         })
 
-    print(f"Electrodes detected after size filter: {len(electrodes)}")
+    print(
+        f"Electrodes detected: {len(electrodes)}  "
+        f"(dropped {dropped_size} by size, {dropped_shape} by shape)"
+    )
     return electrodes
 
 

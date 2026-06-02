@@ -134,11 +134,14 @@ function Brain3D(props) {
     data.electrodes.forEach((e) => {
       const c = e.corrected_mm;
       xs.push(c[0]); ys.push(c[1]); zs.push(c[2]);
-      texts.push("E" + e.id);
+      const displayId = window.nemElecLabel(e.id);
+      texts.push(displayId);
       const label = e.brodmann_area
         ? `BA ${e.brodmann_area} — ${e.anatomy_label || ""}`
         : (e.aseg_label || "Unknown");
-      hovers.push(`<b>E${e.id}</b><br>${label}<br>shift ${e.shift_mm.toFixed(1)} mm`);
+      const dist = e.pial_distance_mm ?? e.shift_mm ?? 0;
+      const offFlag = dist > 3.0 ? " <i>· off cortex</i>" : "";
+      hovers.push(`<b>${displayId}</b><br>${label}<br>${dist.toFixed(1)} mm from cortex${offFlag}`);
       ids.push(e.id);
       const isSel = selectedElec === e.id;
       const isInRegion = selectedBA && e.brodmann_area === selectedBA;

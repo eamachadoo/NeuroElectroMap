@@ -216,6 +216,7 @@ def export_viewer_data(
     output_path: str | Path,
     patient_id: str = "unknown",
     target_reduction: float = 0.8,
+    write_legacy_root_copy: bool = False,
 ) -> Path:
     """Bundle pipeline outputs into a single JSON for the browser viewer.
 
@@ -227,13 +228,24 @@ def export_viewer_data(
         rh_verts, rh_faces: Right-hemisphere pial mesh in tkRAS.
         lh_annot_path:     Path to `lh.BA_exvivo.annot`.
         rh_annot_path:     Path to `rh.BA_exvivo.annot`.
-        output_path:       Destination path for `data.json`.
+        output_path:       Destination path for `data.json`. The patient bundle goes to
+                           `<output_path>.parent / <patient_id> / data.json`; the path
+                           you pass in is only used as the root for the manifest scan
+                           (and, if `write_legacy_root_copy=True`, as the legacy copy).
         patient_id:        Identifier shown in the viewer top bar.
         target_reduction:  Mesh decimation factor in [0.0, 1.0). 0.8 = keep 20 %
                            of triangles (~30k verts per hemisphere from MNE sample).
+        write_legacy_root_copy:
+                           If True, also writes `<root>/data.json` and `data.js`
+                           (the pre-manifest single-patient format). Default False —
+                           wastes ~9 MB per export and is only meaningful when a
+                           browser opens `viewer/index.html` without a manifest
+                           (e.g. via `file://`). The current viewer prefers the
+                           manifest path and falls back to the legacy copy only
+                           when the manifest is missing.
 
     Returns:
-        Path to the written JSON file.
+        Path to the written per-patient JSON file.
     """
     from src.labeling import BRODMANN_LABELS  # imported here to avoid hard dep at import time
 
@@ -292,6 +304,12 @@ def export_viewer_data(
             "corrected_mm":  [round(float(c), 3) for c in corrected],
             "mni_mm":        [round(float(c), 3) for c in np.asarray(mni)] if mni is not None else None,
             "shift_mm":      round(float(e.get("shift_mm", 0.0)), 3),
+            # Distance from the displayed position to the nearest pial vertex.
+            # Lets the viewer tell the user "5.5 mm from cortex" when the 2D
+            # schematic and the 3D view appear to put an electrode in
+            # different places (the schematic shows the categorical label, the
+            # 3D view shows the real geometry).
+            "pial_distance_mm": round(float(e.get("pial_distance_mm", 0.0)), 3),
             "brodmann_area": ba,
             "anatomy_label": str(e.get("anatomy_label", "")),
             "group":         group,
@@ -340,38 +358,41 @@ def export_viewer_data(
         "regions":    regions_out,
     }
 
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(data, f)
-
     # Multi-patient layout (Switch mode):
     #   outputs/viewer/                        ← root the viewer is served from
     #   ├── <patient_id>/data.json             ← per-patient bundle (fetched on demand)
     #   ├── manifest.js                        ← lists all known patients
-    #   ├── data.json, data.js                 ← legacy "default patient" copy (kept
-    #   └── ...                                  for backwards compat; new viewer
-    #                                            prefers the manifest path)
+    #   ├── data.json, data.js                 ← legacy single-patient copy, only
+    #                                            written when `write_legacy_root_copy`
+    #                                            is True (off by default — see docstring)
+    output_path = Path(output_path)
     viewer_root = output_path.parent
+    viewer_root.mkdir(parents=True, exist_ok=True)
+
     per_patient_dir = viewer_root / patient_id
     per_patient_dir.mkdir(parents=True, exist_ok=True)
     per_patient_path = per_patient_dir / "data.json"
     with open(per_patient_path, "w") as f:
         json.dump(data, f)
 
-    # Legacy fallback: viewer/index.html still works without the manifest,
-    # in single-patient mode, when only outputs/viewer/data.js exists.
-    js_path = output_path.with_suffix(".js")
-    with open(js_path, "w") as f:
-        f.write("window.NEM_DATA = ")
-        json.dump(data, f)
-        f.write(";\n")
+    if write_legacy_root_copy:
+        # Mirrors the per-patient bundle into outputs/viewer/data.{json,js} so
+        # a viewer that doesn't read the manifest (e.g. opened via file://)
+        # still has something to load.
+        with open(output_path, "w") as f:
+            json.dump(data, f)
+        js_path = output_path.with_suffix(".js")
+        with open(js_path, "w") as f:
+            f.write("window.NEM_DATA = ")
+            json.dump(data, f)
+            f.write(";\n")
 
     _refresh_manifest(viewer_root)
 
-    size_mb = output_path.stat().st_size / 1e6
+    size_mb = per_patient_path.stat().st_size / 1e6
     print(f"Viewer data exported: {per_patient_path}  ({size_mb:.2f} MB)")
-    print(f"Viewer data (legacy): {output_path} / {js_path.name}")
+    if write_legacy_root_copy:
+        print(f"Viewer data (legacy): {output_path} / {output_path.with_suffix('.js').name}")
     print(f"Manifest refreshed:   {viewer_root / 'manifest.js'}")
     return per_patient_path
 
@@ -382,7 +403,14 @@ def _refresh_manifest(viewer_root: Path) -> None:
     The viewer loads `manifest.js` synchronously and then fetches the
     selected patient's `data.json` on demand. The manifest only carries
     cheap summary info — the full mesh stays in each per-patient bundle.
+
+    Each patient entry also carries an ISO-8601 `processed_at` timestamp
+    (taken from `data.json`'s mtime) so the viewer can sort patients by
+    freshness, surface stale runs, and the user can tell at a glance
+    whether a patient still reflects the current pipeline.
     """
+    from datetime import datetime, timezone
+
     patients: list[dict] = []
     for sub in sorted(viewer_root.iterdir()):
         if not sub.is_dir():
@@ -395,17 +423,24 @@ def _refresh_manifest(viewer_root: Path) -> None:
                 pdata = json.load(f)
         except Exception:
             continue
+        processed_at = datetime.fromtimestamp(
+            data_file.stat().st_mtime, tz=timezone.utc
+        ).isoformat(timespec="seconds")
         patients.append({
             "id":           sub.name,
             "patient_id":   pdata.get("patient_id", sub.name),
             "n_electrodes": len(pdata.get("electrodes", [])),
             "n_regions":    len(pdata.get("regions", {})),
             "data_url":     f"{sub.name}/data.json",
+            "processed_at": processed_at,
         })
 
     manifest = {
-        "version":  1,
-        "patients": patients,
+        "version":   1,
+        "patients":  patients,
+        # Manifest-level timestamp records when the scan was last refreshed.
+        # Useful for diagnostics when something looks stale on disk.
+        "refreshed_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
     }
     with open(viewer_root / "manifest.js", "w") as f:
         f.write("window.NEM_MANIFEST = ")

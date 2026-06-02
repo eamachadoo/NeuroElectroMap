@@ -4,23 +4,27 @@ window.NEM_MANIFEST = {
     {
       "id": "sub-1",
       "patient_id": "sub-1",
-      "n_electrodes": 151,
+      "n_electrodes": 119,
       "n_regions": 10,
-      "data_url": "sub-1/data.json"
+      "data_url": "sub-1/data.json",
+      "processed_at": "2026-06-02T15:01:04+00:00"
     },
     {
       "id": "sub-12",
       "patient_id": "sub-12",
-      "n_electrodes": 228,
+      "n_electrodes": 119,
       "n_regions": 10,
-      "data_url": "sub-12/data.json"
+      "data_url": "sub-12/data.json",
+      "processed_at": "2026-06-02T15:01:20+00:00"
     },
     {
       "id": "sub-2",
       "patient_id": "sub-2",
-      "n_electrodes": 167,
+      "n_electrodes": 121,
       "n_regions": 10,
-      "data_url": "sub-2/data.json"
+      "data_url": "sub-2/data.json",
+      "processed_at": "2026-06-02T15:01:11+00:00"
     }
-  ]
+  ],
+  "refreshed_at": "2026-06-02T15:01:20+00:00"
 };
