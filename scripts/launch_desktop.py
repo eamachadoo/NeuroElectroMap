@@ -22,24 +22,21 @@ import sys
 import threading
 from pathlib import Path
 
+from scripts.dev_server import _Handler as _DevHandler
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 VIEWER_PATH = "viewer/index.html"
 
 
-class _Handler(http.server.SimpleHTTPRequestHandler):
-    """Static handler that serves the project root and disables HTTP caching."""
+class _Handler(_DevHandler):
+    """Reuses the dev server's behaviour (no-cache + mtime-based `?v=` rewrite
+    for the viewer's index.html) while serving from PROJECT_ROOT and staying
+    silent on per-request access logs."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(PROJECT_ROOT), **kwargs)
 
-    def end_headers(self) -> None:
-        # Editing a JSX file during a dev session should be picked up on reload.
-        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-        self.send_header("Pragma", "no-cache")
-        super().end_headers()
-
     def log_message(self, *_args, **_kwargs) -> None:
-        # Keep the desktop launcher quiet — no per-request access log.
         return
 
 
