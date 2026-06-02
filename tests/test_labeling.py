@@ -110,6 +110,33 @@ class TestAsegCodeMapping:
     def test_aseg_group(self, code, expected_group):
         assert _aseg_group(code) == expected_group
 
+    def test_every_subcortical_lut_entry_has_a_group(self):
+        """Regression guard: if someone adds a new code to `_ASEG_SUBCORTICAL`
+        they must also classify it in `_aseg_group` — silently falling through
+        to "unknown" would mean these electrodes get dropped into the
+        Unknown pool in the 2D viewer."""
+        from src.labeling import _ASEG_SUBCORTICAL
+        unclassified = []
+        for code in _ASEG_SUBCORTICAL:
+            if code == 0:        # 0 = Unknown is a legitimate "unknown"
+                continue
+            if _aseg_group(code) == "unknown":
+                unclassified.append((code, _ASEG_SUBCORTICAL[code]))
+        assert not unclassified, (
+            "Subcortical codes missing a group classification — "
+            "update _aseg_group(): " + ", ".join(
+                f"{c}={n}" for c, n in unclassified
+            )
+        )
+
+    def test_dk_cortical_range_is_classified_cortical(self):
+        """All Desikan-Killiany cortical codes (1000-1035 left, 2000-2035 right)
+        must be classified as cortical. This guards against a future refactor
+        accidentally narrowing the range."""
+        for code in list(range(1000, 1036)) + list(range(2000, 2036)):
+            assert _aseg_group(code) == "cortical", \
+                f"DK code {code} should be cortical, got {_aseg_group(code)!r}"
+
 
 class TestFindNearestLabeledVoxel:
     """Boundary-rescue helper used by lookup_aseg when the centroid voxel is 0."""
