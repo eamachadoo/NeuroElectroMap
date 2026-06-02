@@ -211,10 +211,13 @@ def test_export_viewer_data_end_to_end(synthetic_subject, tmp_path):
         output_path=out_path,
         patient_id="test-sub",
         target_reduction=0,  # 4 verts is already small — don't decimate
+        write_legacy_root_copy=True,  # exercise the legacy fallback too
     )
 
-    # Both files must exist
-    assert out_path.exists()
+    # Per-patient bundle (always written) AND the legacy copy (opt-in here)
+    per_patient = tmp_path / "test-sub" / "data.json"
+    assert per_patient.exists()
+    assert out_path.exists()  # legacy root copy
     js_path = out_path.with_suffix(".js")
     assert js_path.exists()
 
@@ -222,7 +225,7 @@ def test_export_viewer_data_end_to_end(synthetic_subject, tmp_path):
     js_head = js_path.read_text()[:40]
     assert js_head.startswith("window.NEM_DATA = "), js_head
 
-    data = json.loads(out_path.read_text())
+    data = json.loads(per_patient.read_text())
 
     # ── top-level shape
     assert set(data.keys()) == {"patient_id", "mesh", "electrodes", "regions"}
@@ -285,7 +288,7 @@ def test_export_viewer_data_promotes_aseg_cortical_to_schematic(synthetic_subjec
         patient_id="test",
         target_reduction=0,
     )
-    data = json.loads(out_path.read_text())
+    data = json.loads((tmp_path / "test" / "data.json").read_text())
     assert data["electrodes"][0]["schematic_id"] == "precentral", \
         "DK label should route the electrode to the precentral schematic region"
 
@@ -338,7 +341,10 @@ class TestManifest:
         # Files we promise the viewer can load
         assert (tmp_path / "sub-12" / "data.json").exists()
         assert (tmp_path / "manifest.js").exists()
-        assert (tmp_path / "data.json").exists()  # legacy single-patient copy
+        # The pre-manifest single-patient copy is OFF by default — only written
+        # when `write_legacy_root_copy=True` is passed explicitly.
+        assert not (tmp_path / "data.json").exists()
+        assert not (tmp_path / "data.js").exists()
 
         # Manifest is a JS file with a window-bind sentinel — strip it to JSON
         raw = (tmp_path / "manifest.js").read_text()
@@ -392,6 +398,25 @@ class TestManifest:
         assert ids == ["sub-1", "sub-2"]
         for p in manifest["patients"]:
             assert p["data_url"] == f"{p['id']}/data.json"
+
+    def test_write_legacy_root_copy_opt_in(self, synthetic_subject, tmp_path):
+        """`write_legacy_root_copy=True` writes the pre-manifest single-patient
+        copy at the viewer root. Default behaviour leaves it off."""
+        verts, faces, lh_annot, rh_annot = synthetic_subject
+        export_viewer_data(
+            electrodes=[], lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot), rh_annot_path=str(rh_annot),
+            output_path=tmp_path / "data.json",
+            patient_id="sub-1", target_reduction=0,
+            write_legacy_root_copy=True,
+        )
+        # Both the per-patient bundle AND the root-level copy exist
+        assert (tmp_path / "sub-1" / "data.json").exists()
+        assert (tmp_path / "data.json").exists()
+        assert (tmp_path / "data.js").exists()
+        js_head = (tmp_path / "data.js").read_text()[:30]
+        assert js_head.startswith("window.NEM_DATA = ")
 
     def test_manifest_skips_non_directory_entries(self, synthetic_subject, tmp_path):
         """Stray files at the viewer root must not crash the scan."""
