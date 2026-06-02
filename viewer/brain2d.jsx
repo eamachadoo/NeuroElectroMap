@@ -86,7 +86,7 @@ function ElectrodeTooltip({ elec, regions }) {
     : (window.nemAsegInfo(elec.aseg_group).color);
   return (
     <>
-      <div className="braintip-name">Electrode E{elec.id}</div>
+      <div className="braintip-name">Electrode {window.nemElecLabel(elec.id)}</div>
       <div className="braintip-sub">{primary}</div>
       <div className="braintip-meta">
         <span className="dot" style={{ background: dotColor }} />
