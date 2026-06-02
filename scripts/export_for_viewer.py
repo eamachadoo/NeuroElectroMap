@@ -304,6 +304,12 @@ def export_viewer_data(
             "corrected_mm":  [round(float(c), 3) for c in corrected],
             "mni_mm":        [round(float(c), 3) for c in np.asarray(mni)] if mni is not None else None,
             "shift_mm":      round(float(e.get("shift_mm", 0.0)), 3),
+            # Distance from the displayed position to the nearest pial vertex.
+            # Lets the viewer tell the user "5.5 mm from cortex" when the 2D
+            # schematic and the 3D view appear to put an electrode in
+            # different places (the schematic shows the categorical label, the
+            # 3D view shows the real geometry).
+            "pial_distance_mm": round(float(e.get("pial_distance_mm", 0.0)), 3),
             "brodmann_area": ba,
             "anatomy_label": str(e.get("anatomy_label", "")),
             "group":         group,

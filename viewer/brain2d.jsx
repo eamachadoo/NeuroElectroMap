@@ -84,13 +84,20 @@ function ElectrodeTooltip({ elec, regions }) {
   const dotColor = reg
     ? reg.color
     : (window.nemAsegInfo(elec.aseg_group).color);
+  const dist = elec.pial_distance_mm ?? elec.shift_mm ?? 0;
+  // Flag when the position is meaningfully off the cortical surface so the
+  // user understands why the 3D view places the dot outside the mesh while
+  // the 2D schematic keeps it inside the labelled region.
+  const off = dist > 3.0
+    ? <span style={{ color: "var(--muted)" }}> · off cortex</span>
+    : null;
   return (
     <>
       <div className="braintip-name">Electrode {window.nemElecLabel(elec.id)}</div>
       <div className="braintip-sub">{primary}</div>
       <div className="braintip-meta">
         <span className="dot" style={{ background: dotColor }} />
-        shift {elec.shift_mm.toFixed(1)} mm
+        {dist.toFixed(1)} mm from cortex{off}
       </div>
     </>
   );

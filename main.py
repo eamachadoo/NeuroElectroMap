@@ -325,6 +325,18 @@ def run_pipeline(args: argparse.Namespace) -> None:
     else:
         electrodes = correct_brain_shift(electrodes, pial_vertices)
 
+    # Distance from the **displayed** electrode position to the nearest pial
+    # vertex. Stored on every electrode so the viewer can surface it in the
+    # tooltips: a contact labelled "BA 4" with `pial_distance_mm = 5.5` is
+    # near motor cortex but not strictly inside it — useful when the 2D
+    # schematic and the 3D anatomical view appear to disagree (the schematic
+    # only sees the categorical label, the 3D view shows the real geometry).
+    for e in electrodes:
+        coord = np.asarray(e["corrected_mm"], dtype=float)
+        e["pial_distance_mm"] = float(
+            np.linalg.norm(pial_vertices - coord, axis=1).min()
+        )
+
     # ── Phase 3: Labeling & Atlas ─────────────────────────────────────────────
     print("\n=== Phase 3: Anatomical Labeling ===")
     # MNI normalization via FreeSurfer talairach.xfm (tkRAS → MNI Talairach)
