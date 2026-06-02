@@ -67,8 +67,13 @@ run: $(VENV)/bin/activate
 		--plot --export-viewer --output-dir outputs/
 
 # Shortcut for the dataset we built the viewer around (real sEEG patient).
+# ds004473 ships verified ground-truth electrode positions — we use those
+# directly via --use-ground-truth, so CT segmentation is skipped entirely.
+# This gives 100% positional accuracy + clinical electrode names (LTP1, RAHIPP3, ...).
 run-ds004473: $(VENV)/bin/activate
-	$(MAKE) run \
-	  MRI=data/raw/ds004473/sub-12/anat/sub-12_T1w.nii.gz \
-	  CT=data/raw/ds004473/sub-12/anat/sub-12_ct.nii.gz \
-	  SUBJECT_DIR=data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12
+	SSL_CERT_FILE=$(CERT_FILE) REQUESTS_CA_BUNDLE=$(CERT_FILE) \
+	$(PYTHON) main.py \
+	  --mri data/raw/ds004473/sub-12/anat/sub-12_T1w.nii.gz \
+	  --subject-dir data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12 \
+	  --use-ground-truth data/raw/ds004473/sub-12/ieeg/sub-12_space-ScanRAS_electrodes.tsv \
+	  --plot --export-viewer --output-dir outputs/
