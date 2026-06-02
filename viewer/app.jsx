@@ -113,24 +113,43 @@ function Legend({ regions, hoveredBA, onHover, onSelect }) {
     }),
     [regions]
   );
+  // Default collapsed so the legend never overlaps the deep / subcortical
+  // pool that sits at the bottom of the 2D brain. Last toggle persists in
+  // localStorage so power users don't have to re-expand on every load.
+  const [expanded, setExpanded] = useState(() => {
+    return localStorage.getItem("nem-legend-expanded") === "1";
+  });
+  useEffect(() => {
+    localStorage.setItem("nem-legend-expanded", expanded ? "1" : "0");
+  }, [expanded]);
   if (list.length === 0) return null;
   return (
-    <div className="legend">
-      <div className="legend-t">Brodmann areas present ({list.length})</div>
-      <div className="legend-grid">
-        {list.map((r) => (
-          <button
-            key={r.ba}
-            className={"leg" + (hoveredBA === r.ba ? " on" : "")}
-            onMouseEnter={() => onHover(r.ba)}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onSelect(r.ba)}
-          >
-            <span className="leg-dot" style={{ background: r.color }} />
-            <span className="leg-l">BA {r.ba} — {r.name}</span>
-          </button>
-        ))}
-      </div>
+    <div className={"legend " + (expanded ? "expanded" : "collapsed")}>
+      <button
+        className="legend-head"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        title={expanded ? "Collapse legend" : "Expand legend"}
+      >
+        Brodmann areas present ({list.length})
+        <span className="legend-caret" aria-hidden="true">▲</span>
+      </button>
+      {expanded && (
+        <div className="legend-grid">
+          {list.map((r) => (
+            <button
+              key={r.ba}
+              className={"leg" + (hoveredBA === r.ba ? " on" : "")}
+              onMouseEnter={() => onHover(r.ba)}
+              onMouseLeave={() => onHover(null)}
+              onClick={() => onSelect(r.ba)}
+            >
+              <span className="leg-dot" style={{ background: r.color }} />
+              <span className="leg-l">BA {r.ba} — {r.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
