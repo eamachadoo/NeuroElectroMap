@@ -345,15 +345,69 @@ def export_viewer_data(
     with open(output_path, "w") as f:
         json.dump(data, f)
 
-    # Also write a thin JS wrapper so the viewer can be opened directly from
-    # file:// without a local server (browsers block fetch() on file:// URLs).
+    # Multi-patient layout (Switch mode):
+    #   outputs/viewer/                        ← root the viewer is served from
+    #   ├── <patient_id>/data.json             ← per-patient bundle (fetched on demand)
+    #   ├── manifest.js                        ← lists all known patients
+    #   ├── data.json, data.js                 ← legacy "default patient" copy (kept
+    #   └── ...                                  for backwards compat; new viewer
+    #                                            prefers the manifest path)
+    viewer_root = output_path.parent
+    per_patient_dir = viewer_root / patient_id
+    per_patient_dir.mkdir(parents=True, exist_ok=True)
+    per_patient_path = per_patient_dir / "data.json"
+    with open(per_patient_path, "w") as f:
+        json.dump(data, f)
+
+    # Legacy fallback: viewer/index.html still works without the manifest,
+    # in single-patient mode, when only outputs/viewer/data.js exists.
     js_path = output_path.with_suffix(".js")
     with open(js_path, "w") as f:
         f.write("window.NEM_DATA = ")
         json.dump(data, f)
         f.write(";\n")
 
+    _refresh_manifest(viewer_root)
+
     size_mb = output_path.stat().st_size / 1e6
-    print(f"Viewer data exported: {output_path}  ({size_mb:.2f} MB)")
-    print(f"Viewer data (JS):     {js_path}")
-    return output_path
+    print(f"Viewer data exported: {per_patient_path}  ({size_mb:.2f} MB)")
+    print(f"Viewer data (legacy): {output_path} / {js_path.name}")
+    print(f"Manifest refreshed:   {viewer_root / 'manifest.js'}")
+    return per_patient_path
+
+
+def _refresh_manifest(viewer_root: Path) -> None:
+    """Scan `viewer_root/<id>/data.json` and rebuild `manifest.js`.
+
+    The viewer loads `manifest.js` synchronously and then fetches the
+    selected patient's `data.json` on demand. The manifest only carries
+    cheap summary info — the full mesh stays in each per-patient bundle.
+    """
+    patients: list[dict] = []
+    for sub in sorted(viewer_root.iterdir()):
+        if not sub.is_dir():
+            continue
+        data_file = sub / "data.json"
+        if not data_file.exists():
+            continue
+        try:
+            with open(data_file) as f:
+                pdata = json.load(f)
+        except Exception:
+            continue
+        patients.append({
+            "id":           sub.name,
+            "patient_id":   pdata.get("patient_id", sub.name),
+            "n_electrodes": len(pdata.get("electrodes", [])),
+            "n_regions":    len(pdata.get("regions", {})),
+            "data_url":     f"{sub.name}/data.json",
+        })
+
+    manifest = {
+        "version":  1,
+        "patients": patients,
+    }
+    with open(viewer_root / "manifest.js", "w") as f:
+        f.write("window.NEM_MANIFEST = ")
+        json.dump(manifest, f, indent=2)
+        f.write(";\n")

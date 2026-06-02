@@ -311,3 +311,106 @@ def test_export_viewer_data_rejects_mesh_annot_mismatch(synthetic_subject, tmp_p
             patient_id="test",
             target_reduction=0,
         )
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Multi-patient manifest (Switch mode)
+# ──────────────────────────────────────────────────────────────────────────
+
+class TestManifest:
+    """Each per-patient export must update outputs/viewer/manifest.js so the
+    case selector lists every patient that has been processed."""
+
+    def test_single_patient_manifest(self, synthetic_subject, tmp_path):
+        verts, faces, lh_annot, rh_annot = synthetic_subject
+        out_path = tmp_path / "data.json"
+        export_viewer_data(
+            electrodes=[],
+            lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot),
+            rh_annot_path=str(rh_annot),
+            output_path=out_path,
+            patient_id="sub-12",
+            target_reduction=0,
+        )
+
+        # Files we promise the viewer can load
+        assert (tmp_path / "sub-12" / "data.json").exists()
+        assert (tmp_path / "manifest.js").exists()
+        assert (tmp_path / "data.json").exists()  # legacy single-patient copy
+
+        # Manifest is a JS file with a window-bind sentinel — strip it to JSON
+        raw = (tmp_path / "manifest.js").read_text()
+        assert raw.startswith("window.NEM_MANIFEST = ")
+        manifest = json.loads(
+            raw[len("window.NEM_MANIFEST = "):].rstrip(";\n ")
+        )
+
+        assert manifest["version"] == 1
+        assert len(manifest["patients"]) == 1
+        sub12 = manifest["patients"][0]
+        assert sub12["id"]        == "sub-12"
+        assert sub12["data_url"]  == "sub-12/data.json"
+        assert "n_electrodes" in sub12
+        assert "n_regions"    in sub12
+
+    def test_multi_patient_manifest_accumulates(self, synthetic_subject, tmp_path):
+        """Running the export for a second patient must keep the first one
+        listed in the manifest."""
+        verts, faces, lh_annot, rh_annot = synthetic_subject
+
+        # First patient
+        export_viewer_data(
+            electrodes=[], lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot), rh_annot_path=str(rh_annot),
+            output_path=tmp_path / "data.json",
+            patient_id="sub-1", target_reduction=0,
+        )
+        # Second patient — same viewer root, different id
+        export_viewer_data(
+            electrodes=[], lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot), rh_annot_path=str(rh_annot),
+            output_path=tmp_path / "data.json",
+            patient_id="sub-2", target_reduction=0,
+        )
+
+        raw = (tmp_path / "manifest.js").read_text()
+        manifest = json.loads(
+            raw[len("window.NEM_MANIFEST = "):].rstrip(";\n ")
+        )
+        ids = sorted(p["id"] for p in manifest["patients"])
+        assert ids == ["sub-1", "sub-2"]
+        for p in manifest["patients"]:
+            assert p["data_url"] == f"{p['id']}/data.json"
+
+    def test_manifest_skips_non_directory_entries(self, synthetic_subject, tmp_path):
+        """Stray files at the viewer root must not crash the scan."""
+        verts, faces, lh_annot, rh_annot = synthetic_subject
+        export_viewer_data(
+            electrodes=[], lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot), rh_annot_path=str(rh_annot),
+            output_path=tmp_path / "data.json",
+            patient_id="sub-12", target_reduction=0,
+        )
+        # Add some noise next to the patient subdirs
+        (tmp_path / "stray.txt").write_text("nothing to see here")
+        (tmp_path / "broken-subdir").mkdir()  # no data.json inside
+
+        # Re-export — manifest scan should still produce a single valid entry
+        export_viewer_data(
+            electrodes=[], lh_verts=verts, lh_faces=faces,
+            rh_verts=verts, rh_faces=faces,
+            lh_annot_path=str(lh_annot), rh_annot_path=str(rh_annot),
+            output_path=tmp_path / "data.json",
+            patient_id="sub-12", target_reduction=0,
+        )
+        raw = (tmp_path / "manifest.js").read_text()
+        manifest = json.loads(
+            raw[len("window.NEM_MANIFEST = "):].rstrip(";\n ")
+        )
+        ids = [p["id"] for p in manifest["patients"]]
+        assert ids == ["sub-12"], f"got {ids}"

@@ -22,21 +22,29 @@ from pathlib import Path
 
 BASE_URL = "https://s3.amazonaws.com/openneuro.org/ds004473"
 DEST     = Path("data/raw/ds004473")
-FS       = "derivatives/freesurfer-7.3.2/sub-12"
 
-FILES = [
-    "sub-12/anat/sub-12_T1w.nii.gz",
-    "sub-12/anat/sub-12_ct.nii.gz",
-    f"{FS}/mri/T1.mgz",
-    f"{FS}/mri/transforms/talairach.xfm",
-    f"{FS}/surf/lh.pial",
-    f"{FS}/surf/rh.pial",
-    f"{FS}/label/lh.BA_exvivo.annot",
-    f"{FS}/label/rh.BA_exvivo.annot",
-    # Volumetric Desikan-Killiany + ASEG atlas — labels every electrode,
-    # including deep / subcortical / white-matter contacts that BA_exvivo misses.
-    f"{FS}/mri/aparc+aseg.mgz",
-]
+
+def files_for_subject(sub: str) -> list[str]:
+    """Return the relative paths the pipeline needs for one subject."""
+    fs = f"derivatives/freesurfer-7.3.2/{sub}"
+    return [
+        f"{sub}/anat/{sub}_T1w.nii.gz",
+        f"{sub}/anat/{sub}_ct.nii.gz",
+        f"{fs}/mri/T1.mgz",
+        f"{fs}/mri/transforms/talairach.xfm",
+        f"{fs}/surf/lh.pial",
+        f"{fs}/surf/rh.pial",
+        f"{fs}/label/lh.BA_exvivo.annot",
+        f"{fs}/label/rh.BA_exvivo.annot",
+        # Desikan-Killiany + ASEG — labels every electrode, including deep /
+        # subcortical / white-matter contacts that BA_exvivo misses.
+        f"{fs}/mri/aparc+aseg.mgz",
+    ]
+
+
+# Default subject for the original `python download_ds004473.py` invocation.
+# Override with: python download_ds004473.py sub-1 sub-2 ...
+DEFAULT_SUBJECTS = ["sub-12"]
 
 
 def _progress(count, block_size, total_size):
@@ -45,35 +53,48 @@ def _progress(count, block_size, total_size):
     print(f"\r  [{bar}] {pct:3d}%", end="", flush=True)
 
 
+def _download_one(rel_path: str) -> None:
+    dest_file = DEST / rel_path
+    dest_file.parent.mkdir(parents=True, exist_ok=True)
+    # The OpenNeuro dataset ships as git-annex symlinks. If the symlink
+    # was never resolved (broken) we need to drop it before writing the
+    # downloaded blob — urllib.urlretrieve can't write through a dangling link.
+    if dest_file.is_symlink() and not dest_file.exists():
+        dest_file.unlink()
+    if dest_file.exists() and dest_file.stat().st_size > 1000:
+        print(f"  ✓  {rel_path}  (already present, skipping)")
+        return
+    url = f"{BASE_URL}/{urllib.parse.quote(rel_path)}"
+    print(f"  ↓  {rel_path}")
+    try:
+        urllib.request.urlretrieve(url, dest_file, reporthook=_progress)
+        size_mb = dest_file.stat().st_size / (1024 * 1024)
+        print(f"\r  ✓  {rel_path}  ({size_mb:.1f} MB)")
+    except Exception as exc:
+        print(f"\r  ✗  {rel_path}  FAILED: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
-    print("Downloading ds004473 sub-12 from OpenNeuro S3...")
+    # Subjects can be passed as CLI args (`python download_ds004473.py sub-1 sub-2`).
+    # No args → fall back to DEFAULT_SUBJECTS for backwards compatibility.
+    subjects = sys.argv[1:] if len(sys.argv) > 1 else DEFAULT_SUBJECTS
+    print(f"Downloading ds004473 {', '.join(subjects)} from OpenNeuro S3...")
     print(f"Destination: {DEST.resolve()}\n")
 
-    for rel_path in FILES:
-        dest_file = DEST / rel_path
-        dest_file.parent.mkdir(parents=True, exist_ok=True)
+    for sub in subjects:
+        print(f"── {sub} ──")
+        for rel_path in files_for_subject(sub):
+            _download_one(rel_path)
+        print()
 
-        if dest_file.exists() and dest_file.stat().st_size > 1000:
-            print(f"  ✓  {rel_path}  (already present, skipping)")
-            continue
-
-        # Percent-encode the path so chars like '+' (in aparc+aseg.mgz) work.
-        url = f"{BASE_URL}/{urllib.parse.quote(rel_path)}"
-        print(f"  ↓  {rel_path}")
-        try:
-            urllib.request.urlretrieve(url, dest_file, reporthook=_progress)
-            size_mb = dest_file.stat().st_size / (1024 * 1024)
-            print(f"\r  ✓  {rel_path}  ({size_mb:.1f} MB)")
-        except Exception as exc:
-            print(f"\r  ✗  {rel_path}  FAILED: {exc}", file=sys.stderr)
-            sys.exit(1)
-
-    print("\nAll files downloaded.")
-    print("\nRun the pipeline with:")
-    print("  make run \\")
-    print("    MRI=data/raw/ds004473/sub-12/anat/sub-12_T1w.nii.gz \\")
-    print("    CT=data/raw/ds004473/sub-12/anat/sub-12_ct.nii.gz \\")
-    print("    SUBJECT_DIR=data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12")
+    print("All files downloaded.\n")
+    print("Run the pipeline with:")
+    for sub in subjects:
+        print(f"  make run \\")
+        print(f"    MRI=data/raw/ds004473/{sub}/anat/{sub}_T1w.nii.gz \\")
+        print(f"    CT=data/raw/ds004473/{sub}/anat/{sub}_ct.nii.gz \\")
+        print(f"    SUBJECT_DIR=data/raw/ds004473/derivatives/freesurfer-7.3.2/{sub}")
 
 
 if __name__ == "__main__":

@@ -85,7 +85,8 @@ Status: `[x]` Done | `[ ]` Open | `[~]` Partial
 | Future | Issue | Notes |
 |--------|-------|-------|
 | F-1 | **Multi-patient comparison view** | Compare 2 or more patients side-by-side in the viewer. Requires: (a) export script writes per-patient subdirs e.g. `outputs/viewer/sub-12/data.js`; (b) `viewer/index.js` manifest listing available patients; (c) UI: case selector becomes multi-select, side-by-side or overlay layout; (d) common MNI-space coordinate frame so meshes overlay. Mentioned by user 2026-05-31. |
-| F-2 | **Standalone `.app` / `.exe` bundle** | Package the viewer + pipeline with PyInstaller (or py2app on macOS) so a clinician can launch it without installing Python. Should bundle the venv, the viewer assets, and any required system libraries. Depends on P5-7 (pywebview launcher). |
+| F-2 | **Standalone `.app` / `.exe` bundle (#9b)** | Package the viewer + pre-built `outputs/viewer/*` with PyInstaller. Scoped viewer-only (no pipeline) — ~150 MB. macOS arm64 from this machine. Documented Windows/Linux build process. No code signing — uses `xattr -cr` workaround. Approved but deferred behind #9a per user 2026-06-02. |
+| F-3 | **Web deployment via GitHub Pages (#9a)** | Push viewer + per-patient `data.json` to gh-pages so the professor accesses it from a public URL — `https://eamachadoo.github.io/NeuroElectroMap/viewer/`. Approved by user 2026-06-02; implementation paused for a bug-fix pass first. Covers 80% of the distribution need at ~30 min cost. |
 
 ---
 
