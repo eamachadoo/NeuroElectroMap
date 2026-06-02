@@ -355,6 +355,13 @@ class TestManifest:
         assert "n_electrodes" in sub12
         assert "n_regions"    in sub12
 
+        # Timestamps — ISO-8601 with timezone, format: 2026-06-02T17:30:00+00:00
+        assert "processed_at" in sub12
+        assert sub12["processed_at"].endswith("+00:00")
+        assert "T" in sub12["processed_at"]
+        assert "refreshed_at" in manifest
+        assert manifest["refreshed_at"].endswith("+00:00")
+
     def test_multi_patient_manifest_accumulates(self, synthetic_subject, tmp_path):
         """Running the export for a second patient must keep the first one
         listed in the manifest."""

@@ -382,7 +382,14 @@ def _refresh_manifest(viewer_root: Path) -> None:
     The viewer loads `manifest.js` synchronously and then fetches the
     selected patient's `data.json` on demand. The manifest only carries
     cheap summary info — the full mesh stays in each per-patient bundle.
+
+    Each patient entry also carries an ISO-8601 `processed_at` timestamp
+    (taken from `data.json`'s mtime) so the viewer can sort patients by
+    freshness, surface stale runs, and the user can tell at a glance
+    whether a patient still reflects the current pipeline.
     """
+    from datetime import datetime, timezone
+
     patients: list[dict] = []
     for sub in sorted(viewer_root.iterdir()):
         if not sub.is_dir():
@@ -395,17 +402,24 @@ def _refresh_manifest(viewer_root: Path) -> None:
                 pdata = json.load(f)
         except Exception:
             continue
+        processed_at = datetime.fromtimestamp(
+            data_file.stat().st_mtime, tz=timezone.utc
+        ).isoformat(timespec="seconds")
         patients.append({
             "id":           sub.name,
             "patient_id":   pdata.get("patient_id", sub.name),
             "n_electrodes": len(pdata.get("electrodes", [])),
             "n_regions":    len(pdata.get("regions", {})),
             "data_url":     f"{sub.name}/data.json",
+            "processed_at": processed_at,
         })
 
     manifest = {
-        "version":  1,
-        "patients": patients,
+        "version":   1,
+        "patients":  patients,
+        # Manifest-level timestamp records when the scan was last refreshed.
+        # Useful for diagnostics when something looks stale on disk.
+        "refreshed_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
     }
     with open(viewer_root / "manifest.js", "w") as f:
         f.write("window.NEM_MANIFEST = ")
