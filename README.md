@@ -1,177 +1,170 @@
 # NeuroElectroMap
 
-**3D intracranial electrode localization via CT + MRI fusion, with an
-interactive 2D/3D clinical viewer.**
+**3D intracranial electrode localization via CT + MRI fusion, with an interactive 2D/3D clinical viewer.**
 
 [![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
-Localizes sEEG / ECoG electrodes by fusing a pre-operative MRI (anatomy)
-with a post-operative CT (electrode position), then assigns each contact
-both a Brodmann area (surface, `BA_exvivo.annot`) and a Desikan-Killiany
-/ subcortical label (volumetric, `aparc+aseg.mgz`). Results are exported
-to CSV/Excel for clinical review and to an interactive browser viewer
-(or native desktop window) for visualisation.
+Localizes sEEG / ECoG electrodes by fusing a pre-operative MRI (anatomy) with a post-operative CT (electrode position), then assigns each contact both a Brodmann area (surface, `BA_exvivo.annot`) and a Desikan-Killiany / subcortical label (volumetric, `aparc+aseg.mgz`). Results are exported to CSV/Excel and to an interactive browser viewer for visualisation.
 
 ---
 
-## Quick start — the 3-command tour
+## From zero to the web viewer — step by step
 
-For someone evaluating the project from scratch (clean machine, Python 3.11+):
+### Prerequisites
 
-```bash
-make setup                 # venv + dependencies                (~3 min)
-make data-ds004473         # download sub-12 from OpenNeuro     (~1 min, 75 MB)
-make test                  # run the test suite                  (~3 s, 79 tests)
-make run-ds004473          # full pipeline + viewer export       (~3-5 min)
-make install-desktop       # install pywebview (one-off)         (~30 s)
-make desktop               # open the viewer as a native window
-```
-
-After `make desktop` the viewer opens showing **228 electrodes from
-patient sub-12** with full BA + ASEG labels.
+| Requirement | Notes |
+|---|---|
+| Python 3.11 or newer | Check with `python3 --version` |
+| Git | Any recent version |
+| ~500 MB free disk space | Code + dataset + outputs |
+| macOS or Linux | Windows: use WSL 2 |
 
 ---
 
-## What you get
-
-### Pipeline outputs (`outputs/`)
-
-| File                                | Contents                                                |
-|-------------------------------------|---------------------------------------------------------|
-| `reports/electrode_report.csv`      | One row per electrode — ID, X/Y/Z (mm), BA, anatomy, shift |
-| `figures/electrodes_3d.png`         | PyVista render (pial surface + electrodes)              |
-| `processed/mri_masked.nii.gz`       | Brain-masked MRI                                        |
-| `processed/ct_registered.nii.gz`    | CT resampled into MRI space                             |
-| `viewer/data.json`, `viewer/data.js`| Bundle consumed by the interactive viewer               |
-
-### Interactive viewer
-
-Two modes, toggled in the top bar:
-
-**🧠 2D schematic** — lateral brain SVG with electrodes scattered into
-their anatomical regions (BA-mapped on the cortex, aseg-mapped grouped
-in a subcortical "pool" beneath: Limbic, Thalamus, Basal ganglia, White
-matter, Ventricles…).
-
-**🧊 3D anatomical** — real pial surface (Plotly `Mesh3d`,
-semi-transparent so deep contacts stay visible), coloured by per-vertex
-BA, with the actual 228 electrodes in their tkRAS coordinates.
-
-Side panel cycles through three states: Overview → Region detail →
-Electrode detail. Both views stay in sync with the panel + legend; the
-theme toggle (light / dark) persists in `localStorage`.
-
----
-
-## Setup (manual, if you skip `make setup`)
+### 1. Clone the repository
 
 ```bash
 git clone <repo-url> NeuroElectroMap
 cd NeuroElectroMap
-
-# Virtual environment
-python3 -m venv .venv
-source .venv/bin/activate          # macOS / Linux
-# .venv\Scripts\activate           # Windows
-
-pip install -r requirements.txt
-pip install -r requirements-dev.txt        # for pytest
-pip install -r requirements-desktop.txt    # for the native window
 ```
-
-Python **3.11+** is supported (CI covers 3.11, 3.12, 3.13 on Ubuntu and
-3.13 on macOS).
 
 ---
 
-## Datasets
-
-Both supported datasets are downloaded straight from public S3 mirrors —
-no `datalad` / `git-annex` setup required.
+### 2. Create the virtual environment and install dependencies
 
 ```bash
-make data              # MNE sample sEEG (small, dev / smoke testing)
-make data-ds004473     # OpenNeuro ds004473 sub-12 (real patient, 228 contacts)
+make setup
 ```
 
-The download scripts pull only the files the pipeline needs (T1, CT,
-`talairach.xfm`, pial surfaces, `BA_exvivo.annot`, `aparc+aseg.mgz`).
-Datasets land under `data/raw/` which is git-ignored.
+This creates `.venv/` and installs all runtime dependencies (~3 min on first run).
 
-Need a different sub-X from ds004473? Edit the `FILES` list in
-`scripts/download_ds004473.py` — same structure.
+> If you don't have `make`, run manually:
+> ```bash
+> python3 -m venv .venv
+> source .venv/bin/activate
+> pip install -r requirements.txt
+> ```
 
 ---
 
-## Running the pipeline
+### 3. Download the dataset
 
 ```bash
-# Shortcut for ds004473 sub-12
+make data-ds004473
+```
+
+Downloads **sub-12 from OpenNeuro ds004473** (real sEEG patient, 75 MB) directly from the public S3 mirror — no account or extra tools required. Files land under `data/raw/ds004473/`.
+
+---
+
+### 4. Run the pipeline
+
+```bash
 make run-ds004473
-
-# Or general form
-make run \
-  MRI=path/to/T1w.nii.gz \
-  CT=path/to/ct.nii.gz \
-  SUBJECT_DIR=path/to/freesurfer/subject
 ```
 
-`make run` always passes `--export-viewer` so the viewer bundle is
-refreshed automatically. Direct invocation is also fine:
+This runs the full pipeline on sub-12 and writes the viewer bundle automatically (~45 seconds). It uses the dataset's verified ground-truth electrode positions, so CT segmentation is skipped and all contacts get their clinical names (e.g. `LTP1`, `RAHIPP3`).
 
-```bash
-.venv/bin/python main.py \
-  --mri ... --ct ... --subject-dir ... \
-  --plot --export-viewer --output-dir outputs/
+When it finishes you will see:
+
 ```
-
-### Optional validation against ground truth
-
-```bash
-.venv/bin/python main.py ... --validate path/to/ground_truth.{json,tsv}
+Exported viewer data → outputs/viewer/data.json
+Exported viewer data → outputs/viewer/data.js
 ```
-
-JSON form (also accepts BIDS `_electrodes.tsv`):
-
-```json
-[
-  {"id": 1, "gt_mm": [-12.3, 45.1, 20.0]},
-  {"id": 2, "gt_mm": [-14.0, 47.2, 18.5]}
-]
-```
-
-Prints per-contact + mean / max Euclidean error. Clinical target is
-mean error < 2 mm.
 
 ---
 
-## Opening the viewer
-
-### Browser (good for development — hot-reload friendly)
+### 5. Open the web viewer
 
 ```bash
 make viewer
-# open http://localhost:8765/viewer/
 ```
 
-`scripts/dev_server.py` sends `Cache-Control: no-cache` headers so JSX
-edits show up on a normal page reload.
+This starts a local HTTP server on port 8765 and opens your browser automatically.  
+If the browser does not open, navigate to **http://localhost:8765/** manually.
 
-### Native window (recommended for demos and clinical use)
-
-```bash
-make install-desktop   # once
-make desktop
-```
-
-A `pywebview`-managed window opens with the same viewer — no browser,
-no terminal URL, own icon on the dock. Uses the system WebView
-(`WKWebView` on macOS, `Edge WebView2` on Windows, `WebKitGTK` on
-Linux). Closing the window stops the background server.
+Press `Ctrl-C` in the terminal to stop the server when you are done.
 
 ---
 
-## Architecture
+### What you will see
+
+The viewer has two modes, toggled in the top bar:
+
+**2D schematic** — a lateral brain SVG with all electrode contacts placed into their anatomical regions. Cortical contacts are grouped by Brodmann area; subcortical contacts are pooled below (Limbic, Thalamus, Basal Ganglia, White Matter, Ventricles).
+
+**3D anatomical** — the real pial surface rendered as a semi-transparent mesh (coloured by per-vertex Brodmann area), with the 228 electrode contacts at their true tkRAS coordinates.
+
+Clicking any electrode in either view opens its detail in the side panel (region, BA label, ASEG label, coordinates). The legend is grouped by clinical region. A light/dark theme toggle is in the top-right corner.
+
+---
+
+## All make targets
+
+```
+make setup             Create venv + install runtime dependencies
+make install-dev       Also install pytest and dev tools
+make install-desktop   Also install pywebview (for native window)
+make data              Download MNE sample sEEG dataset (~25 MB, smoke-test only)
+make data-ds004473     Download ds004473 sub-12 from OpenNeuro (~75 MB)
+make test              Run the test suite (79 tests, ~3 s, no data required)
+make run-ds004473      Run pipeline on ds004473 sub-12 (recommended)
+make run MRI=… CT=… SUBJECT_DIR=…   Run pipeline on any dataset
+make viewer            Serve the viewer at http://localhost:8765/
+make desktop           Open the viewer in a native desktop window (needs install-desktop)
+make ports             List all TCP ports currently in LISTEN state
+```
+
+---
+
+## Pipeline outputs (`outputs/`)
+
+| File | Contents |
+|---|---|
+| `reports/electrode_report.csv` | One row per contact — ID, name, X/Y/Z (mm), BA, anatomy, shift |
+| `figures/electrodes_3d.png` | PyVista render of the pial surface with electrode positions |
+| `processed/mri_masked.nii.gz` | Brain-masked T1w MRI |
+| `processed/ct_registered.nii.gz` | CT resampled into MRI space |
+| `viewer/data.json`, `viewer/data.js` | Bundle consumed by the interactive viewer |
+
+---
+
+## Native desktop window (optional)
+
+If you prefer a standalone window instead of a browser tab:
+
+```bash
+make install-desktop   # one-off: installs pywebview
+make desktop
+```
+
+A native window opens using `WKWebView` (macOS), `Edge WebView2` (Windows), or `WebKitGTK` (Linux). Closing the window stops the background server.
+
+---
+
+## Running the tests
+
+```bash
+make test
+```
+
+All 79 tests use synthetic data — no dataset download, no network access required.
+
+| File | Coverage | Tests |
+|---|---|---|
+| `test_loader.py` | NIfTI I/O + brain masking | 4 |
+| `test_registration.py` | CT → MRI rigid registration | 2 |
+| `test_segmentation.py` | Electrode detection | 3 |
+| `test_labeling.py` | BA + ASEG labelling | 35 |
+| `test_visualization.py` | 3D visualization | 2 |
+| `test_export_viewer.py` | Viewer data export | 33 |
+| **Total** | | **79** |
+
+CI runs on every push across Python 3.11, 3.12, 3.13 on Ubuntu and 3.13 on macOS.
+
+---
+
+## Pipeline architecture
 
 ```
                  ┌──────────────────────────────┐
@@ -188,7 +181,7 @@ Linux). Closing the window stops the background server.
                   ▼
    ┌──── Phase 2 ──────────────────────────────────────────────┐
    │  register_ct_to_mri (Mutual Information rigid)            │
-   │  segment_electrodes (HU>3000 + 3D CCA)                    │
+   │  segment_electrodes (HU > 3000 + 3D CCA)                  │
    │  scanner RAS → tkRAS (via T1.mgz vox2ras/vox2ras_tkr)     │
    │  correct_brain_shift (nearest pial vertex)                │
    └──────────────┬────────────────────────────────────────────┘
@@ -213,13 +206,10 @@ Linux). Closing the window stops the background server.
    │  brain2d.jsx   schematic SVG + subcortical pool           │
    │  brain3d.jsx   Plotly Mesh3d + Scatter3d                  │
    │  panel.jsx     Overview / Region / Electrode detail       │
-   │  Launched standalone via launch_desktop.py + pywebview    │
    └───────────────────────────────────────────────────────────┘
 ```
 
-Three coordinate systems are juggled — getting them wrong drops the
-accuracy by 50–150 mm. See `.agents/architecture.md` for the full
-conversion math.
+Three coordinate systems are in play — scanner RAS, FreeSurfer tkRAS, and MNI Talairach. Getting the conversions wrong shifts contacts by 50–150 mm. See `.agents/architecture.md` for the full conversion math.
 
 ---
 
@@ -228,7 +218,7 @@ conversion math.
 ```
 NeuroElectroMap/
 ├── main.py                     CLI entry point — orchestrates phases 1-5
-├── Makefile                    setup / data / test / run / viewer / desktop
+├── Makefile                    All convenience commands
 ├── requirements.txt            Runtime dependencies
 ├── requirements-dev.txt        + pytest, pyyaml
 ├── requirements-desktop.txt    + pywebview (optional)
@@ -264,75 +254,32 @@ NeuroElectroMap/
 
 ---
 
-## Testing
-
-```bash
-make test
-# or
-.venv/bin/python -m pytest tests/ -v
-```
-
-| Coverage             | File                          | Tests |
-|----------------------|-------------------------------|-------|
-| NIfTI I/O + masking  | `test_loader.py`              | 4     |
-| Rigid registration   | `test_registration.py`        | 2     |
-| Electrode detection  | `test_segmentation.py`        | 3     |
-| BA + ASEG labelling  | `test_labeling.py`            | 35    |
-| 3D visualization     | `test_visualization.py`       | 2     |
-| Viewer bridge        | `test_export_viewer.py`       | 33    |
-| **Total**            |                               | **79**|
-
-All tests use synthetic data — no FreeSurfer subject required, no
-network. The CI workflow (`.github/workflows/ci.yml`) re-runs them on
-every push across Python 3.11 / 3.12 / 3.13 on Ubuntu plus a macOS job.
-
----
-
 ## Known limitations
 
-- The HU > 3000 segmentation can pick up cables, connectors and
-  partial-volume artifacts in the post-op CT. On ds004473 sub-12 about
-  half of the 228 detected "contacts" are likely real, the rest land
-  outside the segmented brain volume. They surface in the viewer's
-  "Unknown" pool with an explanatory note.
-- `correct_brain_shift` snaps centroids to the nearest pial vertex.
-  For depth (sEEG) electrodes this gives a *cortical entry point*, not
-  the contact's true depth. Brodmann is still meaningful (the
-  trajectory's nearest cortical area); ASEG is the ground truth for
-  subcortical contacts.
-- The 2D schematic is anatomically simplified (10 lobes / sub-regions),
-  drawn from the design hand-off. Electrode placement within a region
-  is a deterministic scatter, not a real projection — use the 3D view
-  for accurate localisation.
-- `aparc+aseg.mgz` lives in FreeSurfer's conformed space; the pipeline
-  samples it with `vox2ras_tkr` so the coordinate frame matches the
-  pial surface and the BA lookup.
-
-See `.agents/known_issues.md` for a more detailed list, including the
-SSL / Talairach atlas download workaround.
+- The HU > 3000 segmentation can pick up cables, connectors, and partial-volume artifacts in the post-op CT. On ds004473 sub-12 about half of the 228 detected contacts are likely real; the rest land outside the segmented brain volume and surface in the viewer's "Unknown" pool with an explanatory note. `make run-ds004473` bypasses this by using the dataset's verified ground-truth positions directly.
+- `correct_brain_shift` snaps centroids to the nearest pial vertex. For depth (sEEG) electrodes this gives a cortical entry point, not the contact's true depth. Brodmann is still meaningful (the trajectory's nearest cortical area); ASEG is the ground truth for subcortical contacts.
+- The 2D schematic is anatomically simplified (10 lobes / sub-regions). Electrode placement within a region is a deterministic scatter, not a real projection — use the 3D view for accurate localisation.
 
 ---
 
 ## Tech stack
 
-| Concern            | Library                                                                |
-|--------------------|------------------------------------------------------------------------|
-| NIfTI / MGZ I/O    | `nibabel`                                                              |
-| Brain masking      | `nilearn`                                                              |
-| Surface I/O        | `mne` (`read_surface`, `read_annot` via `nibabel.freesurfer`)          |
-| CT → MRI rigid     | `dipy` (Mutual Information optimiser)                                  |
-| 3D connected comp. | `scipy.ndimage`                                                        |
-| Region centroids   | `scikit-image`                                                         |
-| 3D render (server) | `pyvista` (interactive) + `matplotlib` (fallback)                      |
-| 3D render (web)    | `plotly.js` (`Mesh3d` + `Scatter3d`) inside a React + Babel-standalone shell |
-| Desktop window     | `pywebview` (`WKWebView` / `Edge WebView2` / `WebKitGTK`)              |
-| Tabular export     | `pandas`                                                               |
-| Tests / CI         | `pytest`, GitHub Actions                                               |
+| Concern | Library |
+|---|---|
+| NIfTI / MGZ I/O | `nibabel` |
+| Brain masking | `nilearn` |
+| Surface I/O | `mne` (`read_surface`, `read_annot`) |
+| CT → MRI rigid | `dipy` (Mutual Information optimiser) |
+| 3D connected components | `scipy.ndimage` |
+| Region centroids | `scikit-image` |
+| 3D render (server) | `pyvista` + `matplotlib` fallback |
+| 3D render (web) | `plotly.js` (`Mesh3d` + `Scatter3d`) inside React + Babel-standalone |
+| Desktop window | `pywebview` |
+| Tabular export | `pandas` |
+| Tests / CI | `pytest`, GitHub Actions |
 
 ---
 
 ## Acknowledgements
 
-Dataset: **ds004473** (Rockhill et al., 2022 — OHSU sEEG) via
-OpenNeuro. Sample dataset: MNE sample sEEG. FreeSurfer atlases:
-`BA_exvivo.annot`, `aparc+aseg.mgz`.
+Dataset: **ds004473** (Rockhill et al., 2022 — OHSU sEEG) via OpenNeuro. Sample dataset: MNE sample sEEG. FreeSurfer atlases: `BA_exvivo.annot`, `aparc+aseg.mgz`.
