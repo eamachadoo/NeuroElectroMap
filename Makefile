@@ -98,10 +98,16 @@ run: $(VENV)/bin/activate
 # ds004473 ships verified ground-truth electrode positions — we use those
 # directly via --use-ground-truth, so CT segmentation is skipped entirely.
 # This gives 100% positional accuracy + clinical electrode names (LTP1, RAHIPP3, ...).
+#
+# We pass the *ACPC* file (BIDS: `iEEGCoordinateSystem: ACPC`,
+# `IntendedFor: …/mri/T1.mgz`) rather than the ScanRAS one because the
+# ACPC frame is already aligned with the pial surface (FreeSurfer tkRAS).
+# Using ScanRAS would require a T1w→T1.mgz scanner-RAS bridge that is not
+# guaranteed to exist for every dataset (it isn't for ds004473).
 run-ds004473: $(VENV)/bin/activate
 	SSL_CERT_FILE=$(CERT_FILE) REQUESTS_CA_BUNDLE=$(CERT_FILE) \
 	$(PYTHON) main.py \
 	  --mri data/raw/ds004473/sub-12/anat/sub-12_T1w.nii.gz \
 	  --subject-dir data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12 \
-	  --use-ground-truth data/raw/ds004473/sub-12/ieeg/sub-12_space-ScanRAS_electrodes.tsv \
+	  --use-ground-truth data/raw/ds004473/sub-12/ieeg/sub-12_space-ACPC_electrodes.tsv \
 	  --plot --export-viewer --output-dir outputs/

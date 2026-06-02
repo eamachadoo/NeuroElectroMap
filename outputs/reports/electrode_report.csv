@@ -1,122 +1,120 @@
 Electrode_ID,X_mm,Y_mm,Z_mm,Brodmann_Area,Anatomy_Label,Shift_Correction_mm
-LATP1,-21.404,49.549,-18.805,0,unknown,0.0
-LATP2,-24.601,50.031,-19.707,0,unknown,0.0
-LATP3,-31.474,50.913,-20.987,0,unknown,0.0
-LATP4,-34.504,51.829,-21.193,0,unknown,0.0
-LATP5,-38.738,53.168,-22.032,0,unknown,0.0
-LATP6,-42.13,53.455,-22.017,0,unknown,0.0
-LATP7,-45.341,53.641,-23.159,0,unknown,0.0
-LAMG1,-12.806,34.002,-10.182,0,unknown,0.0
-LAMG2,-16.46,34.488,-11.21,0,unknown,0.0
-LAMG3,-21.817,35.676,-11.933,0,unknown,0.0
-LAMG4,-27.561,35.874,-13.184,0,unknown,0.0
-LAMG5,-32.596,36.962,-14.55,0,unknown,0.0
-LAMG6,-37.662,37.205,-15.915,0,unknown,0.0
-LAMG7,-43.731,38.256,-17.027,0,unknown,0.0
-LAMG8,-48.597,38.534,-18.049,0,unknown,0.0
-LAMG9,-53.485,39.467,-19.205,0,unknown,0.0
-LAHP1,-21.711,22.159,-12.757,0,unknown,0.0
-LAHP2,-27.113,23.271,-14.436,0,unknown,0.0
-LAHP3,-31.766,23.963,-14.639,0,unknown,0.0
-LAHP4,-36.903,25.313,-15.865,0,unknown,0.0
-LAHP5,-42.539,26.087,-16.24,0,unknown,0.0
-LAHP6,-47.984,26.82,-17.133,0,unknown,0.0
-LAHP7,-52.915,28.101,-17.221,0,unknown,0.0
-LPLI1,-27.208,33.923,-4.228,0,unknown,0.0
-LPLI2,-31.154,34.406,-5.455,0,unknown,0.0
-LPLI3,-34.102,34.847,-5.4,0,unknown,0.0
-LPLI4,-37.543,35.051,-6.169,0,unknown,0.0
-LPLI5,-40.801,35.726,-6.57,0,unknown,0.0
-LPLI6,-44.526,36.15,-7.195,45,Pars Triangularis – Broca's Area,0.0
-LPLI7,-48.023,36.852,-7.597,45,Pars Triangularis – Broca's Area,0.0
-LSTG1,-16.769,5.463,-8.848,0,unknown,0.0
-LSTG2,-20.409,5.649,-7.555,0,unknown,0.0
-LSTG3,-25.446,5.687,-6.081,0,unknown,0.0
-LSTG4,-31.31,6.037,-4.652,0,unknown,0.0
-LSTG5,-36.508,5.882,-2.869,0,unknown,0.0
-LSTG6,-42.067,6.22,-0.934,0,unknown,0.0
-LSTG7,-47.126,7.108,-0.274,0,unknown,0.0
-LSTG8,-52.873,7.73,1.538,3,Primary Somatosensory Cortex – tactile reception,0.0
-LOFC1,0.264,68.99,-6.689,0,unknown,0.0
-LOFC2,-4.405,69.091,-4.487,0,unknown,0.0
-LOFC3,-8.056,69.327,-2.389,0,unknown,0.0
-LOFC4,-13.554,69.467,0.403,0,unknown,0.0
-LOFC5,-18.159,69.259,2.721,0,unknown,0.0
-LOFC6,-23.158,69.667,5.007,0,unknown,0.0
-LOFC7,-27.619,69.971,6.743,0,unknown,0.0
-LOFC8,-32.802,69.82,9.612,0,unknown,0.0
-LSMA1,-28.97,44.99,-5.685,0,unknown,0.0
-LSMA2,-27.953,43.783,-2.595,0,unknown,0.0
-LSMA3,-27.096,43.756,1.595,45,Pars Triangularis – Broca's Area,0.0
-LSMA4,-26.706,42.699,5.027,45,Pars Triangularis – Broca's Area,0.0
-LSMA5,-25.877,41.549,8.109,0,unknown,0.0
-LSMA6,-25.214,41.271,11.183,0,unknown,0.0
-LSMA7,-17.343,32.522,45.455,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA8,-16.135,32.488,48.447,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA9,-15.232,31.46,52.078,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA10,-14.802,30.445,55.036,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA11,-13.935,30.419,58.176,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA12,-13.011,29.391,61.319,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA13,-12.471,28.372,65.588,6,Premotor & Supplementary Motor Cortex,0.0
-LSMA14,-11.492,27.342,69.386,6,Premotor & Supplementary Motor Cortex,0.0
-LACN1,0.128,53.805,25.022,0,unknown,0.0
-LACN2,-4.433,53.763,23.741,0,unknown,0.0
-LACN3,-9.52,53.134,23.58,0,unknown,0.0
-LACN4,-14.988,53.197,21.932,0,unknown,0.0
-LACN5,-25.676,52.785,20.463,0,unknown,0.0
-LACN6,-31.282,52.437,20.217,0,unknown,0.0
-LACN8,-42.129,52.191,18.244,0,unknown,0.0
-LPCN2,-9.051,-17.774,9.789,0,unknown,0.0
-LPCN3,-12.898,-21.2,9.109,0,unknown,0.0
-LPCN4,-17.49,-24.752,8.582,0,unknown,0.0
-LPCN5,-21.085,-27.991,8.425,0,unknown,0.0
-LPCN6,-25.417,-32.267,7.256,0,unknown,0.0
-LPCN7,-29.267,-35.662,7.087,0,unknown,0.0
-LPCN8,-33.55,-39.137,5.267,0,unknown,0.0
-ROFC1,6.713,57.309,-12.564,0,unknown,0.0
-ROFC2,11.168,57.191,-11.091,0,unknown,0.0
-ROFC3,16.364,57.054,-10.096,0,unknown,0.0
-ROFC4,21.489,56.919,-8.978,0,unknown,0.0
-ROFC5,27.061,56.771,-7.584,0,unknown,0.0
-ROFC6,31.954,57.342,-6.73,0,unknown,0.0
-RACN1,4.683,62.58,18.333,0,unknown,0.0
-RACN2,9.623,62.449,19.188,0,unknown,0.0
-RACN3,14.432,61.864,19.782,0,unknown,0.0
-RACN4,19.557,61.729,20.901,0,unknown,0.0
-RACN5,25.478,61.573,21.799,0,unknown,0.0
-RACN6,30.631,61.438,22.28,0,unknown,0.0
-RSMA1,43.739,38.91,-7.836,45,Pars Triangularis – Broca's Area,0.0
-RSMA2,42.542,37.938,-5.78,45,Pars Triangularis – Broca's Area,0.0
-RSMA3,40.358,37.876,-2.596,45,Pars Triangularis – Broca's Area,0.0
-RSMA4,38.381,36.923,0.832,45,Pars Triangularis – Broca's Area,0.0
-RSMA5,36.771,35.882,4.041,45,Pars Triangularis – Broca's Area,0.0
-RSMA6,35.21,35.92,6.784,45,Pars Triangularis – Broca's Area,0.0
-RSMA7,33.503,34.961,9.52,45,Pars Triangularis – Broca's Area,0.0
-RSMA8,32.143,34.273,12.741,0,unknown,0.0
-RSMA9,16.34,24.598,48.02,6,Premotor & Supplementary Motor Cortex,0.0
-RSMA10,15.138,23.775,51.034,6,Premotor & Supplementary Motor Cortex,0.0
-RSMA11,14.011,22.885,53.796,6,Premotor & Supplementary Motor Cortex,0.0
-RSMA12,12.992,21.991,57.074,6,Premotor & Supplementary Motor Cortex,0.0
-RSMA13,11.719,21.17,60.213,6,Premotor & Supplementary Motor Cortex,0.0
-RSMA14,10.507,20.198,63.354,6,Premotor & Supplementary Motor Cortex,0.0
-RPLI1,27.518,27.789,-11.87,0,unknown,0.0
-RPLI2,30.329,27.716,-11.747,0,unknown,0.0
-RPLI3,33.907,27.621,-11.207,0,unknown,0.0
-RPLI4,37.431,27.529,-10.925,45,Pars Triangularis – Broca's Area,0.0
-RPLI5,40.373,27.452,-10.796,45,Pars Triangularis – Broca's Area,0.0
-RPLI6,44.255,26.459,-10.242,45,Pars Triangularis – Broca's Area,0.0
-RMTG1,33.62,18.125,-15.636,0,unknown,0.0
-RMTG2,36.496,17.048,-14.615,0,unknown,0.0
-RMTG3,39.905,16.957,-13.188,0,unknown,0.0
-RMTG4,43.048,15.874,-12.284,44,Pars Opercularis – Broca's Area,0.0
-RMTG5,46.636,15.32,-10.721,44,Pars Opercularis – Broca's Area,0.0
-RMTG6,49.687,14.847,-10.332,44,Pars Opercularis – Broca's Area,0.0
-RSTG1,27.817,7.351,-17.891,0,unknown,0.0
-RSTG2,31.799,6.245,-16.694,0,unknown,0.0
-RSTG3,36.646,5.115,-14.31,0,unknown,0.0
-RSTG4,41.467,3.987,-12.821,44,Pars Opercularis – Broca's Area,0.0
-RSTG5,46.524,2.133,-11.193,44,Pars Opercularis – Broca's Area,0.0
-RSTG6,51.638,0.996,-8.925,44,Pars Opercularis – Broca's Area,0.0
-RTPO5,27.958,-16.253,18.101,2,Primary Somatosensory Cortex – somatosensory integration,0.0
-RTPO6,33.104,-17.941,19.604,2,Primary Somatosensory Cortex – somatosensory integration,0.0
-RTPO7,37.546,-20.007,20.779,2,Primary Somatosensory Cortex – somatosensory integration,0.0
+LTP1,-29.636,8.878,-24.114,0,unknown,0.0
+LTP2,-31.761,10.144,-23.505,0,unknown,0.0
+LTP3,-35.762,11.998,-22.859,0,unknown,0.0
+LTP4,-38.192,13.568,-22.785,0,unknown,0.0
+LTP5,-41.364,15.394,-22.154,0,unknown,0.0
+LTP6,-44.165,17.392,-21.551,0,unknown,0.0
+LENT1,-28.422,-5.55,-30.26,0,unknown,0.0
+LENT2,-31.976,-5.331,-27.48,0,unknown,0.0
+LENT3,-36.586,-5.002,-24.532,0,unknown,0.0
+LENT4,-41.0,-4.756,-21.113,0,unknown,0.0
+LENT5,-44.916,-4.01,-18.193,0,unknown,0.0
+LENT6,-49.622,-3.264,-14.606,0,unknown,0.0
+LENT7,-53.968,-2.463,-11.464,0,unknown,0.0
+LENT8,-57.656,-1.969,-8.609,0,unknown,0.0
+LPC1,-26.405,-9.336,-6.54,0,unknown,0.0
+LPC2,-31.238,-9.506,-6.371,0,unknown,0.0
+LPC3,-36.537,-10.009,-5.768,0,unknown,0.0
+LPC4,-42.237,-10.513,-5.364,0,unknown,0.0
+LPC5,-47.165,-10.445,-4.932,0,unknown,0.0
+LPC6,-52.736,-10.77,-4.357,0,unknown,0.0
+LPC7,-58.069,-10.899,-4.118,0,unknown,0.0
+LPC8,-63.173,-11.027,-3.283,0,unknown,0.0
+LPHGA1,-30.112,-23.625,-18.877,0,unknown,0.0
+LPHGA2,-33.146,-23.78,-18.654,0,unknown,0.0
+LPHGA3,-36.237,-23.504,-18.373,0,unknown,0.0
+LPHGA4,-39.737,-23.578,-18.085,0,unknown,0.0
+LPHGA5,-43.136,-24.009,-17.569,0,unknown,0.0
+LPHGA6,-46.736,-23.761,-17.367,0,unknown,0.0
+LPHGA7,-50.236,-24.014,-16.865,0,unknown,0.0
+LPHGA8,-53.735,-24.216,-16.562,0,unknown,0.0
+LPHGA9,-57.235,-24.268,-16.11,0,unknown,0.0
+LPHGA10,-60.735,-24.396,-15.733,0,unknown,0.0
+LPHGB1,-24.948,-35.555,-13.052,0,unknown,0.0
+LPHGB2,-27.826,-35.948,-12.747,0,unknown,0.0
+LPHGB3,-31.125,-35.803,-11.982,0,unknown,0.0
+LPHGB4,-34.566,-36.006,-11.544,0,unknown,0.0
+LPHGB5,-38.203,-36.009,-10.36,0,unknown,0.0
+LPHGB6,-42.123,-36.011,-9.575,0,unknown,0.0
+LPHGB7,-44.973,-36.388,-8.873,0,unknown,0.0
+LPHGB8,-48.293,-36.445,-7.942,0,unknown,0.0
+LPHGB9,-51.832,-36.463,-6.924,0,unknown,0.0
+LPHGB10,-55.221,-36.521,-5.867,0,unknown,0.0
+LPHGB11,-58.22,-36.523,-5.365,0,unknown,0.0
+LPHGB12,-61.83,-36.804,-3.918,0,unknown,0.0
+LPHGB13,-65.039,-36.944,-2.999,0,unknown,0.0
+LPHGB14,-67.77,-36.946,-1.934,0,unknown,0.0
+LSMAIN1,-34.78,2.389,0.105,0,unknown,0.0
+LSMAIN2,-33.466,1.983,3.091,0,unknown,0.0
+LSMAIN3,-32.487,1.488,5.885,0,unknown,0.0
+LSMAIN4,-31.401,0.543,9.745,0,unknown,0.0
+LSMAIN5,-30.446,-0.299,12.918,0,unknown,0.0
+LSMAIN6,-29.129,-1.014,16.431,0,unknown,0.0
+LSMAIN7,-28.393,-1.57,19.186,44,Pars Opercularis – Broca's Area,0.0
+LSMAIN8,-27.295,-2.587,22.772,44,Pars Opercularis – Broca's Area,0.0
+LSMAIN9,-14.584,-10.356,60.063,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN10,-13.582,-10.912,62.84,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN11,-12.468,-11.69,65.95,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN12,-11.688,-12.358,68.727,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN13,-10.778,-13.359,72.042,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN14,-9.427,-14.026,75.601,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN15,-8.328,-14.955,78.882,6,Premotor & Supplementary Motor Cortex,0.0
+LSMAIN16,-7.204,-15.445,81.92,6,Premotor & Supplementary Motor Cortex,0.0
+LACING1,2.845,15.569,37.189,0,unknown,0.0
+LACING2,-2.326,15.795,37.221,0,unknown,0.0
+LACING3,-7.56,15.825,37.291,0,unknown,0.0
+LACING5,-18.726,15.734,37.632,0,unknown,0.0
+LACING6,-24.059,15.814,37.468,0,unknown,0.0
+LACING7,-29.326,15.577,37.838,0,unknown,0.0
+LACING8,-35.126,15.574,37.842,0,unknown,0.0
+LACING9,-40.297,15.542,38.074,0,unknown,0.0
+LACING10,-45.559,15.8,38.316,0,unknown,0.0
+LPLNIN1,-35.403,-2.679,2.468,0,unknown,0.0
+LPLNIN2,-38.07,-2.68,2.47,0,unknown,0.0
+LPLNIN3,-41.937,-2.616,2.239,0,unknown,0.0
+LPLNIN4,-45.337,-2.818,2.041,44,Pars Opercularis – Broca's Area,0.0
+LPLNIN5,-49.237,-3.021,2.143,44,Pars Opercularis – Broca's Area,0.0
+LPLNIN6,-52.403,-3.023,1.979,44,Pars Opercularis – Broca's Area,0.0
+LSTGPH1,-22.224,-37.498,-11.888,0,unknown,0.0
+LSTGPH3,-31.554,-38.838,-8.716,0,unknown,0.0
+LSTGPH4,-36.275,-39.453,-6.713,0,unknown,0.0
+LSTGPH5,-41.217,-40.013,-4.377,0,unknown,0.0
+LSTGPH7,-50.713,-41.021,0.795,0,unknown,0.0
+LSTGPH8,-55.489,-41.581,3.632,0,unknown,0.0
+LSTGPH9,-59.71,-42.029,5.884,0,unknown,0.0
+LSTGPH10,-64.707,-42.533,8.887,2,Primary Somatosensory Cortex – somatosensory integration,0.0
+LPITEM1,-17.34,-46.622,-7.02,0,unknown,0.0
+LPITEM2,-22.215,-47.666,-7.726,0,unknown,0.0
+LPITEM3,-27.215,-48.502,-8.389,0,unknown,0.0
+LPITEM4,-32.714,-49.149,-8.815,0,unknown,0.0
+LPITEM6,-43.714,-49.813,-8.579,0,unknown,0.0
+LPITEM7,-49.38,-50.572,-7.82,0,unknown,0.0
+LPITEM8,-54.879,-50.854,-7.039,0,unknown,0.0
+LPITEM9,-60.378,-51.524,-6.036,0,unknown,0.0
+LPITEM10,-67.172,-52.106,-5.211,0,unknown,0.0
+LTPO1,-29.692,-62.124,14.051,0,unknown,0.0
+LTPO2,-32.68,-63.091,14.108,0,unknown,0.0
+LTPO3,-36.19,-63.518,14.61,0,unknown,0.0
+LTPO4,-39.289,-64.62,14.812,0,unknown,0.0
+LTPO5,-43.117,-65.451,15.185,0,unknown,0.0
+LTPO6,-46.288,-66.424,15.415,0,unknown,0.0
+LTPO7,-50.021,-67.36,15.617,0,unknown,0.0
+LTPO8,-53.287,-67.829,16.019,0,unknown,0.0
+RAHIPP1,17.762,-12.223,-9.403,0,unknown,0.0
+RAHIPP2,22.595,-11.97,-9.739,0,unknown,0.0
+RAHIPP3,27.832,-11.395,-10.838,0,unknown,0.0
+RAHIPP4,33.26,-10.713,-11.412,0,unknown,0.0
+RAHIPP5,39.116,-10.245,-11.987,0,unknown,0.0
+RAHIPP8,54.923,-7.448,-13.758,0,unknown,0.0
+RAHIPP9,60.255,-6.744,-14.628,0,unknown,0.0
+RAHIPP10,65.654,-6.141,-14.831,0,unknown,0.0
+RPHIPP1,24.151,-30.971,-6.29,0,unknown,0.0
+RPHIPP2,28.277,-31.683,-4.704,0,unknown,0.0
+RPHIPP3,33.279,-32.341,-2.421,0,unknown,0.0
+RPHIPP4,38.481,-32.964,-0.025,0,unknown,0.0
+RPHIPP5,43.14,-33.819,2.429,0,unknown,0.0
+RPHIPP6,47.999,-34.246,5.283,0,unknown,0.0
+RPHIPP7,52.621,-34.958,7.898,0,unknown,0.0
+RPHIPP9,62.434,-35.669,12.987,0,unknown,0.0
+RPHIPP10,67.293,-36.152,15.755,0,unknown,0.0

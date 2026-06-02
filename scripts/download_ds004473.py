@@ -30,6 +30,14 @@ def files_for_subject(sub: str) -> list[str]:
     return [
         f"{sub}/anat/{sub}_T1w.nii.gz",
         f"{sub}/anat/{sub}_ct.nii.gz",
+        # Ground-truth electrode positions. The ACPC file is preferred — it
+        # lives in the same coordinate frame as T1.mgz (and the pial surface)
+        # so the pipeline can use the coordinates directly without a buggy
+        # scanner→tkRAS step. The ScanRAS file is kept for compatibility.
+        f"{sub}/ieeg/{sub}_space-ACPC_electrodes.tsv",
+        f"{sub}/ieeg/{sub}_space-ACPC_coordsystem.json",
+        f"{sub}/ieeg/{sub}_space-ScanRAS_electrodes.tsv",
+        f"{sub}/ieeg/{sub}_space-ScanRAS_coordsystem.json",
         f"{fs}/mri/T1.mgz",
         f"{fs}/mri/transforms/talairach.xfm",
         f"{fs}/surf/lh.pial",

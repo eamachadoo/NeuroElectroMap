@@ -83,6 +83,25 @@ def _parse_talairach_xfm(xfm_path: Path) -> np.ndarray:
     return M
 
 
+def _read_coordsystem(tsv_path: Path) -> dict:
+    """Read the BIDS `*_coordsystem.json` sibling of an `*_electrodes.tsv`.
+
+    Returns the parsed JSON dict, or an empty dict if the file isn't there
+    or fails to parse. The two keys we care about are
+    `iEEGCoordinateUnits` ("m" or "mm") and `iEEGCoordinateSystem`
+    ("ScanRAS", "ACPC", "Other", …).
+    """
+    base = tsv_path.name.replace("_electrodes.tsv", "")
+    cs_path = tsv_path.parent / f"{base}_coordsystem.json"
+    if not cs_path.is_file():
+        return {}
+    try:
+        with open(cs_path) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 def _detect_tsv_units(tsv_path: Path) -> str:
     """Find out whether a BIDS *_electrodes.tsv is in metres or millimetres.
 
@@ -94,20 +113,12 @@ def _detect_tsv_units(tsv_path: Path) -> str:
     """
     import csv as _csv
 
-    # 1) Companion JSON
-    base = tsv_path.name.replace("_electrodes.tsv", "")
-    cs_path = tsv_path.parent / f"{base}_coordsystem.json"
-    if cs_path.is_file():
-        try:
-            with open(cs_path) as f:
-                cs = json.load(f)
-            units = cs.get("iEEGCoordinateUnits")
-            if units in ("m", "mm"):
-                return units
-        except Exception:
-            pass
+    cs = _read_coordsystem(tsv_path)
+    units = cs.get("iEEGCoordinateUnits")
+    if units in ("m", "mm"):
+        return units
 
-    # 2) Heuristic on first row
+    # Heuristic on first row
     with open(tsv_path) as f:
         reader = _csv.DictReader(f, delimiter="\t")
         for row in reader:
@@ -119,6 +130,43 @@ def _detect_tsv_units(tsv_path: Path) -> str:
                 break
             return "m" if v < 1.0 else "mm"
     return "mm"
+
+
+def _detect_tsv_frame(tsv_path: Path) -> str:
+    """Decide what coordinate frame a BIDS *_electrodes.tsv lives in.
+
+    Returns one of:
+      - "tkras"   : the GT is already in T1.mgz's surface-RAS frame —
+                    same coordinates the pial surface uses. No conversion
+                    needed before snapping/labelling. ACPC files for ds004473
+                    fall here; BIDS marks them `iEEGCoordinateSystem: ACPC`
+                    with `IntendedFor: …/mri/T1.mgz`.
+      - "scanner" : the GT is in the original T1w scanner RAS. The pipeline
+                    has to apply `scanner_to_tkr` derived from T1.mgz to bring
+                    it into the surface frame. This is the BIDS `ScanRAS`
+                    convention with `IntendedFor: …/anat/T1w.nii.gz`.
+
+    Auto-detection looks at the companion `_coordsystem.json` and at the
+    filename (`_space-ACPC_` vs `_space-ScanRAS_`).  Falls back to "scanner"
+    when nothing is conclusive — that's the safe default for arbitrary
+    datasets the professor might upload.
+    """
+    cs = _read_coordsystem(tsv_path)
+    sys_name = (cs.get("iEEGCoordinateSystem") or "").lower()
+    intended = (cs.get("IntendedFor") or "").lower()
+
+    if sys_name == "acpc" or "t1.mgz" in intended:
+        return "tkras"
+    if sys_name == "scanras" or "t1w" in intended:
+        return "scanner"
+
+    name = tsv_path.name.lower()
+    if "_space-acpc_" in name:
+        return "tkras"
+    if "_space-scanras_" in name:
+        return "scanner"
+
+    return "scanner"
 
 
 def load_ground_truth(path: str, units: str | None = None) -> list[dict]:
@@ -245,12 +293,26 @@ def run_pipeline(args: argparse.Namespace) -> None:
     pial_faces    = np.vstack([lh_faces, rh_faces_offset])
     print(f"Pial surface loaded: {len(pial_vertices)} vertices")
 
-    # Electrode centroids are in scanner RAS (NIfTI affine space).
-    # Pial surface vertices are in FreeSurfer tkRAS. Convert before snapping.
+    # Electrode centroids may be in a few different frames depending on
+    # whether they came from CT segmentation (T1w scanner RAS, after
+    # registration) or from a BIDS ground-truth TSV (ScanRAS *or* ACPC).
+    # The pial surface always lives in FreeSurfer tkRAS, so we have to align
+    # the electrodes to that frame before snapping/labelling.
     t1_mgz = _nib.load(str(subj_dir / "mri" / "T1.mgz"))
     scanner_to_tkr = t1_mgz.header.get_vox2ras_tkr() @ np.linalg.inv(t1_mgz.header.get_vox2ras())
+
+    gt_frame = "scanner"  # default for CT-segmentation electrodes
+    if use_gt:
+        gt_frame = _detect_tsv_frame(Path(args.use_ground_truth))
+        print(f"Ground-truth coordinate frame: {gt_frame}")
+
     for e in electrodes:
-        e["centroid_scanner_mm"] = e["centroid_mm"].copy()   # keep scanner RAS for validation
+        e["centroid_scanner_mm"] = e["centroid_mm"].copy()   # for downstream validation
+        if gt_frame == "tkras":
+            # ACPC and other T1.mgz-native frames are already in the surface RAS
+            # the pial mesh uses — applying scanner_to_tkr would re-introduce
+            # the very offset we're trying to avoid.
+            continue
         c = np.append(e["centroid_mm"], 1.0)
         e["centroid_mm"] = (scanner_to_tkr @ c)[:3]
 
