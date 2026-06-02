@@ -296,6 +296,11 @@ function Brain2D(props) {
             else if (dim)    opacity = 0.22;
             else             opacity = 0.72;
 
+            // Even when no electrodes in this patient land here, the user
+            // can still click to see what this region represents — we open
+            // a side panel describing the canonical BA (e.g. "BA 22 —
+            // Wernicke's Area — 0 electrodes in this patient").
+            const targetBA = isPresent ? bas[0].ba : reg.canonical_ba;
             return (
               <path
                 key={reg.id} d={reg.path}
@@ -304,28 +309,18 @@ function Brain2D(props) {
                 stroke={active ? "var(--accent)" : "var(--surface)"}
                 strokeWidth={active ? 2.4 : 1.2}
                 style={{
-                  cursor: isPresent ? "pointer" : "default",
+                  cursor: "pointer",
                   transition: "fill-opacity .15s, stroke .15s, stroke-width .15s",
-                  // Sub-regions like "superior-temporal" are drawn on top of
-                  // their parent lobe ("temporal"). When the sub-region has
-                  // no BA in this patient, leaving it as a normal path means
-                  // it silently swallows clicks meant for the lobe behind it
-                  // (cursor stays default, onClick is a no-op, but the SVG
-                  // event still hits the topmost path). Disabling pointer
-                  // events on inactive paths lets the click fall through.
-                  pointerEvents: isPresent ? "auto" : "none",
                 }}
                 onMouseEnter={() => {
-                  if (!isPresent) return;
-                  onHoverRegion(bas[0].ba);
+                  if (targetBA != null) onHoverRegion(targetBA);
                   setTip({
                     x: 0, y: 0, kind: "region", schemReg: reg,
                     bas, count: (corticalElecsBySchId[reg.id] || []).length,
                   });
                 }}
                 onClick={() => {
-                  if (!isPresent) return;
-                  onSelectRegion(bas[0].ba);
+                  if (targetBA != null) onSelectRegion(targetBA);
                 }}
               />
             );
