@@ -1,4 +1,4 @@
-.PHONY: install install-dev install-desktop test run data data-ds004473 viewer desktop help
+.PHONY: install install-dev install-desktop test run data data-ds004473 viewer desktop ports help
 
 VENV    := .venv
 PYTHON  := $(VENV)/bin/python
@@ -18,6 +18,7 @@ help:
 	@echo "  make run-ds004473     Run pipeline on ds004473 sub-12 (one-line shortcut)"
 	@echo "  make viewer           Serve the viewer over loopback HTTP (open in browser)"
 	@echo "  make desktop          Open the viewer in a native desktop window"
+	@echo "  make ports            List all TCP ports currently in LISTEN state"
 
 $(VENV)/bin/activate:
 	python3 -m venv $(VENV)
@@ -53,8 +54,27 @@ OPEN_CMD := $(shell command -v open 2>/dev/null \
                   || echo true)
 
 viewer: $(VENV)/bin/activate
+	@echo "─── Freeing port 8765 if held ───"
+	-@lsof -t -iTCP:8765 -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true
+	@$(MAKE) --no-print-directory ports
+	@echo ""
 	@( sleep 0.6 && $(OPEN_CMD) http://localhost:8765/ ) &
 	$(PYTHON) scripts/dev_server.py 8765
+
+# Useful diagnostic when the dev server complains about an address in use:
+# `make ports` lists every TCP socket currently in LISTEN state on the box,
+# one per line, sorted and de-duplicated.
+ports:
+	@echo "─── TCP ports in LISTEN state ───"
+	@printf "  %-6s %-14s %-7s %s\n" PORT COMMAND PID HOST
+	@lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null \
+	  | awk 'NR>1 { \
+	      n=split($$9, a, ":"); port=a[n]; host=$$9; \
+	      sub(":"port"$$", "", host); \
+	      printf "  %-6s %-14s %-7s %s\n", port, $$1, $$2, host \
+	    }' \
+	  | sort -u \
+	  || echo "  (lsof unavailable or no listeners)"
 
 # Native desktop window (pywebview). Requires `make install-desktop`.
 desktop: $(VENV)/bin/activate
