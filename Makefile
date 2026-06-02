@@ -44,8 +44,16 @@ data-ds004473: $(VENV)/bin/activate
 	$(PYTHON) scripts/download_ds004473.py
 
 # Browser-based viewer — handy for development (auto-reload on edit).
-# Open http://localhost:8765/viewer/ once the server is running.
+# Server starts and the browser is opened on http://localhost:8765/ —
+# the dev server redirects "/" to the viewer automatically.
+# Cross-platform: open on macOS, xdg-open on Linux, start on Windows.
+OPEN_CMD := $(shell command -v open 2>/dev/null \
+                  || command -v xdg-open 2>/dev/null \
+                  || command -v start 2>/dev/null \
+                  || echo true)
+
 viewer: $(VENV)/bin/activate
+	@( sleep 0.6 && $(OPEN_CMD) http://localhost:8765/ ) &
 	$(PYTHON) scripts/dev_server.py 8765
 
 # Native desktop window (pywebview). Requires `make install-desktop`.

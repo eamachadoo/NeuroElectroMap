@@ -49,6 +49,15 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self) -> None:  # noqa: N802 — http.server's name
+        # Convenience redirect: the user landed on the project root and
+        # almost certainly meant to see the viewer. Send them straight there
+        # so they don't have to dig through the source-tree listing.
+        if self.path in ("/", ""):
+            self.send_response(302)
+            self.send_header("Location", "/viewer/")
+            self.end_headers()
+            return
+
         # Only rewrite the viewer's index.html. Everything else is served
         # byte-for-byte by the parent implementation.
         if self.path.rstrip("/").endswith("viewer/index.html") \

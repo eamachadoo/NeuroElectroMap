@@ -80,3 +80,31 @@ def test_does_not_touch_non_script_v_params(tmp_path):
     body = b'<meta name="version" content="v=4">'
     out = _rewrite_index_html(body, tmp_path)
     assert out == body
+
+
+def test_root_redirects_to_viewer():
+    """The dev server should bounce `/` to `/viewer/` so users don't have to
+    navigate the source tree from the directory listing."""
+    import http.client
+    import socketserver
+    import threading
+    import time
+
+    from scripts.dev_server import _Handler
+
+    class _Srv(socketserver.TCPServer):
+        allow_reuse_address = True
+
+    srv = _Srv(("127.0.0.1", 0), _Handler)
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    time.sleep(0.05)
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        conn.request("GET", "/")
+        resp = conn.getresponse()
+        assert resp.status == 302
+        assert resp.headers.get("Location") == "/viewer/"
+    finally:
+        srv.shutdown()
+        srv.server_close()
