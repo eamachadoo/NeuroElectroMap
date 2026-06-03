@@ -124,55 +124,71 @@ window.NEM_SCHEMATIC = {
   // in this patient") instead of silently doing nothing.
   regions: [
     // ─── Lobes (drawn first, under sub-regions) ───
+    // `default_color` ensures every anatomical region carries a recognisable
+    // tint even when the current patient has no electrodes in it — turns
+    // the schematic into an always-readable reference atlas instead of a
+    // mostly-white silhouette. The hex values mirror BA_GROUPS in
+    // scripts/export_for_viewer.py so the colour stays consistent whether
+    // it comes from the static fallback or from data.regions.
     {
-      id: "frontal", canonical_ba: 9, label: [148, 178], spread: 34,
+      id: "frontal", canonical_ba: 9, default_color: "#6E93C8",
+      label: [148, 178], spread: 34,
       group: "Frontal lobe", description: "Executive function, planning, voluntary movement.",
       path: "M255,86 L255,40 L20,30 L0,330 L120,300 L210,275 L284,236 L278,212 L266,150 Z",
     },
     {
-      id: "parietal", canonical_ba: 7, label: [405, 150], spread: 30,
+      id: "parietal", canonical_ba: 7, default_color: "#E0A94E",
+      label: [405, 150], spread: 30,
       group: "Parietal lobe", description: "Sensory integration and spatial awareness.",
       path: "M322,82 L332,150 L342,212 L348,233 L400,236 L466,220 L460,160 L452,104 L452,40 L322,40 Z",
     },
     {
-      id: "occipital", canonical_ba: 17, label: [508, 172], spread: 26,
+      id: "occipital", canonical_ba: 17, default_color: "#D86C5A",
+      label: [508, 172], spread: 26,
       group: "Occipital lobe", description: "Visual processing.",
       path: "M452,104 L460,160 L466,220 L466,248 L600,300 L600,40 L452,40 Z",
     },
     {
-      id: "temporal", canonical_ba: 21, label: [222, 322], spread: 34,
+      id: "temporal", canonical_ba: 21, default_color: "#9B7BC4",
+      label: [222, 322], spread: 34,
       group: "Temporal lobe", description: "Auditory processing, memory, language.",
       path: "M120,300 L210,275 L300,255 L360,242 L400,236 L430,300 L390,365 L300,368 L190,360 L100,335 L0,335 L0,300 Z",
     },
 
     // ─── Specialised sub-regions (drawn on top) ───
     {
-      id: "precentral", canonical_ba: 4, label: [282, 150], spread: 14,
+      id: "precentral", canonical_ba: 4, default_color: "#3FA39A",
+      label: [282, 150], spread: 14,
       group: "Primary motor cortex", description: "Initiates voluntary muscle movement.",
       path: "M255,86 L266,150 L278,212 L284,236 L312,234 L308,210 L300,150 L292,78 Z",
     },
     {
-      id: "postcentral", canonical_ba: 1, label: [333, 150], spread: 14,
+      id: "postcentral", canonical_ba: 1, default_color: "#5FA86F",
+      label: [333, 150], spread: 14,
       group: "Primary somatosensory cortex", description: "Touch, pressure and proprioception.",
       path: "M292,78 L300,150 L308,210 L312,234 L348,233 L342,212 L332,150 L322,82 Z",
     },
     {
-      id: "superior-temporal", canonical_ba: 22, label: [258, 286], spread: 12,
+      id: "superior-temporal", canonical_ba: 22, default_color: "#B79AD6",
+      label: [258, 286], spread: 12,
       group: "Superior temporal gyrus", description: "Auditory cortex and language comprehension (Wernicke's).",
       path: "M120,300 L210,275 L300,255 L360,242 L400,236 L405,262 L362,272 L300,284 L210,300 L122,322 Z",
     },
     {
-      id: "broca", canonical_ba: 44, label: [178, 268], spread: 10,
+      id: "broca", canonical_ba: 44, default_color: "#E0789B",
+      label: [178, 268], spread: 10,
       group: "Broca's area", description: "Speech production and language expression.",
       path: "M148,250 L210,250 L213,276 L175,290 L143,278 Z",
     },
     {
-      id: "supramarginal", canonical_ba: 40, label: [419, 244], spread: 8,
+      id: "supramarginal", canonical_ba: 40, default_color: "#E8B96B",
+      label: [419, 244], spread: 8,
       group: "Supramarginal gyrus", description: "Phonological processing.",
       path: "M398,232 L430,228 L441,252 L412,263 L394,248 Z",
     },
     {
-      id: "angular", canonical_ba: 39, label: [456, 262], spread: 8,
+      id: "angular", canonical_ba: 39, default_color: "#C98A5A",
+      label: [456, 262], spread: 8,
       group: "Angular gyrus", description: "Reading, math, attention to space.",
       path: "M438,250 L469,242 L479,268 L450,281 L431,268 Z",
     },
