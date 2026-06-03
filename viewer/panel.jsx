@@ -323,24 +323,34 @@ function Panel(props) {
 
   // Region detail
   if (selectedBA) {
-    const region = data.regions[String(selectedBA)];
-    if (region) {
-      const here = data.electrodes.filter((e) => e.brodmann_area === selectedBA);
-      // Electrodes placed on the same schematic region but without a BA hit
-      // (routed there via Desikan-Killiany aseg labels in export_for_viewer.py).
-      const schemHere = data.electrodes.filter((e) =>
-        e.brodmann_area === 0 && e.schematic_id === region.schematic_id
-      );
-      return (
-        <RegionDetail
-          region={region}
-          regionElectrodes={here}
-          schematicElectrodes={schemHere}
-          onBackToOverview={onClearSelection}
-          onSelectElectrode={onSelectElectrode}
-        />
-      );
+    // The BA may not be in this patient's exported data.regions (e.g. user
+    // clicked a sub-region on the 2D schematic that no electrode landed in).
+    // Synthesise a stub from the static atlas metadata so we can still show
+    // the user *what* this region is, even if the count of contacts is zero.
+    let region = data.regions[String(selectedBA)];
+    if (!region) {
+      const info = window.nemRegionInfo(selectedBA);
+      region = {
+        ba:           selectedBA,
+        name:         info.name,
+        group:        info.group,
+        schematic_id: info.schematic_id,
+        color:        info.color,
+      };
     }
+    const here = data.electrodes.filter((e) => e.brodmann_area === selectedBA);
+    const schemHere = data.electrodes.filter((e) =>
+      e.brodmann_area === 0 && e.schematic_id === region.schematic_id
+    );
+    return (
+      <RegionDetail
+        region={region}
+        regionElectrodes={here}
+        schematicElectrodes={schemHere}
+        onBackToOverview={onClearSelection}
+        onSelectElectrode={onSelectElectrode}
+      />
+    );
   }
 
   // Overview

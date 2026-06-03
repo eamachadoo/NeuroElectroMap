@@ -287,15 +287,26 @@ function Brain2D(props) {
           {sch.regions.map((reg) => {
             const bas = basBySchId[reg.id] || [];
             const isPresent = bas.length > 0;
-            const fillColor = isPresent ? bas[0].color : "var(--surface-2)";
+            // Every region gets its anatomical colour, even when no electrodes
+            // landed there in this patient — the schematic doubles as an atlas
+            // reference. Muted opacity when empty avoids competing with the
+            // patient's own coverage.
+            const fillColor = isPresent
+              ? bas[0].color
+              : (reg.default_color || "var(--surface-2)");
             const active   = activeSchId === reg.id || hoverSchId === reg.id;
             const dim      = corticalIsActive && !active;
             let opacity;
-            if (!isPresent)  opacity = 0.18;
-            else if (active) opacity = 0.95;
-            else if (dim)    opacity = 0.22;
-            else             opacity = 0.72;
+            if (active)         opacity = 0.95;
+            else if (dim)       opacity = 0.20;
+            else if (isPresent) opacity = 0.72;
+            else                opacity = 0.32;  // anatomy-only reference tint
 
+            // Even when no electrodes in this patient land here, the user
+            // can still click to see what this region represents — we open
+            // a side panel describing the canonical BA (e.g. "BA 22 —
+            // Wernicke's Area — 0 electrodes in this patient").
+            const targetBA = isPresent ? bas[0].ba : reg.canonical_ba;
             return (
               <path
                 key={reg.id} d={reg.path}
@@ -304,20 +315,18 @@ function Brain2D(props) {
                 stroke={active ? "var(--accent)" : "var(--surface)"}
                 strokeWidth={active ? 2.4 : 1.2}
                 style={{
-                  cursor: isPresent ? "pointer" : "default",
+                  cursor: "pointer",
                   transition: "fill-opacity .15s, stroke .15s, stroke-width .15s",
                 }}
                 onMouseEnter={() => {
-                  if (!isPresent) return;
-                  onHoverRegion(bas[0].ba);
+                  if (targetBA != null) onHoverRegion(targetBA);
                   setTip({
                     x: 0, y: 0, kind: "region", schemReg: reg,
                     bas, count: (corticalElecsBySchId[reg.id] || []).length,
                   });
                 }}
                 onClick={() => {
-                  if (!isPresent) return;
-                  onSelectRegion(bas[0].ba);
+                  if (targetBA != null) onSelectRegion(targetBA);
                 }}
               />
             );
