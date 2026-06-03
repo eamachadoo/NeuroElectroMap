@@ -6,10 +6,14 @@ Task 3.3: Validation – compute Mean Euclidean Error vs. ground truth.
 Task 4.2: Report export (CSV / Excel).
 """
 
+import re
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 import nibabel as nib
 from nilearn import datasets
+from scipy.optimize import linear_sum_assignment
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -390,44 +394,210 @@ def lookup_aseg(
 # Task 3.3 – Validation
 # ──────────────────────────────────────────────────────────────────────────────
 
+_SHAFT_NAME_RE = re.compile(r"^([A-Za-z]+)(\d+)$")
+
+
+def _group_gt_by_shaft(ground_truth: list[dict]) -> dict[str, list[dict]] | None:
+    """Group GT contacts by clinical shaft prefix (e.g. 'LTP1' → shaft 'LTP').
+
+    Returns None if any GT id fails to parse, signalling that the caller
+    should fall back to plain Hungarian matching.
+    """
+    shafts: dict[str, list[dict]] = defaultdict(list)
+    for gt in ground_truth:
+        m = _SHAFT_NAME_RE.match(str(gt["id"]))
+        if not m:
+            return None
+        shafts[m.group(1)].append(gt)
+    # Sort contacts within each shaft by numeric suffix so axis ordering is stable.
+    for shaft in shafts.values():
+        shaft.sort(key=lambda g: int(_SHAFT_NAME_RE.match(str(g["id"])).group(2)))
+    return dict(shafts)
+
+
+def _fit_shaft_axis(coords: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return (centroid, unit_direction) for a set of 3D shaft contacts."""
+    centroid = coords.mean(axis=0)
+    centered = coords - centroid
+    # First right-singular vector = direction of maximum variance.
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    return centroid, vt[0]
+
+
+def _shaft_compactness(coords: np.ndarray) -> float:
+    """RMS perpendicular distance of contacts to their best-fit line.
+
+    Used to order shafts by tightness so cleanly-linear shafts claim their
+    predicted contacts first.
+    """
+    if len(coords) < 2:
+        return 0.0
+    centroid, axis = _fit_shaft_axis(coords)
+    rel = coords - centroid
+    perp = rel - (rel @ axis)[:, None] * axis
+    return float(np.sqrt((perp ** 2).sum(axis=1).mean()))
+
+
 def compute_euclidean_error(
     predicted: list[dict],
     ground_truth: list[dict],
     pred_key: str = "corrected_mm",
     gt_key: str = "gt_mm",
+    line_radius_mm: float = 10.0,
+    axis_margin_mm: float = 5.0,
 ) -> dict:
     """
-    Compare predicted electrode positions against ground truth via
-    nearest-neighbour matching.  Each GT contact is independently matched
-    to the closest predicted electrode, so the lists need not have the
-    same length.
+    Compare predicted electrode positions against ground truth.
+
+    When GT ids carry clinical shaft prefixes (e.g. 'LTP1', 'RAHIPP3') the
+    matching is shaft-aware:
+
+      1. GT is grouped by alpha prefix → one shaft per clinical lead.
+      2. For each shaft, a line is fitted through the GT contacts (PCA).
+      3. Predicted electrodes within `line_radius_mm` perpendicular of that
+         line and within the shaft's longitudinal extent (± `axis_margin_mm`)
+         are taken as candidates for that shaft.
+      4. A local Hungarian assignment pairs GT contacts to candidates,
+         minimising total Euclidean distance within the shaft.
+      5. Shafts are resolved in order of tightness (lowest RMS residual
+         first) and predicteds claimed by earlier shafts are excluded from
+         later ones, guaranteeing one-to-one global assignment.
+
+    GT contacts left without any in-radius candidate are reported as
+    unmatched and excluded from the mean/max statistics.
+
+    When GT ids do not carry shaft prefixes (e.g. integer-only ids from a
+    JSON dump), the function falls back to a flat one-to-one Hungarian
+    match over the full distance matrix.
 
     Note: pred_key and gt_key coordinates must be in the same space.
     Clinical precision target: mean error < 2.0 mm.
 
     Returns:
-        {mean_error_mm, max_error_mm, per_electrode}
+        {mean_error_mm, max_error_mm, per_electrode, unmatched, mode}
     """
-    pred_coords = np.array([p[pred_key] for p in predicted])   # (N, 3)
+    pred_coords = np.array([p[pred_key] for p in predicted])           # (P, 3)
+
+    shafts = _group_gt_by_shaft(ground_truth)
+    if shafts is None:
+        return _flat_hungarian(predicted, ground_truth, pred_coords, gt_key)
+
+    # Resolve cleanest (most linear) shafts first.
+    shaft_order = sorted(
+        shafts.keys(),
+        key=lambda s: _shaft_compactness(
+            np.array([np.asarray(g[gt_key]) for g in shafts[s]])
+        ),
+    )
+
+    used: set[int] = set()
+    errors: list[dict] = []
+    unmatched_gt: list[str] = []
+
+    for shaft_name in shaft_order:
+        gt_list = shafts[shaft_name]
+        gt_coords = np.array([np.asarray(g[gt_key]) for g in gt_list])
+
+        if len(gt_coords) >= 2:
+            centroid, axis = _fit_shaft_axis(gt_coords)
+            rel = pred_coords - centroid
+            along = rel @ axis
+            perp = np.linalg.norm(rel - along[:, None] * axis, axis=1)
+            gt_along = (gt_coords - centroid) @ axis
+            lo, hi = gt_along.min() - axis_margin_mm, gt_along.max() + axis_margin_mm
+            in_radius = (perp < line_radius_mm) & (along >= lo) & (along <= hi)
+        else:
+            # Single-contact shaft → just take predicteds within line_radius_mm.
+            in_radius = (
+                np.linalg.norm(pred_coords - gt_coords[0], axis=1) < line_radius_mm
+            )
+
+        candidate_idx = np.array(
+            [i for i in np.where(in_radius)[0] if i not in used], dtype=int
+        )
+
+        if candidate_idx.size == 0:
+            for g in gt_list:
+                errors.append({"id": g["id"], "error_mm": float("nan"),
+                               "matched_pred_id": None, "shaft": shaft_name})
+                unmatched_gt.append(g["id"])
+                print(f"  GT {g['id']} → (no candidate within {line_radius_mm:.0f}mm)  [{shaft_name}]")
+            continue
+
+        cand_coords = pred_coords[candidate_idx]
+        cost = np.linalg.norm(gt_coords[:, None, :] - cand_coords[None, :, :], axis=2)
+        # If fewer candidates than GT contacts, only min(G, C) get matched;
+        # the rest are reported as unmatched below.
+        gi_arr, ci_arr = linear_sum_assignment(cost)
+        matched_gt = set()
+        for gi, ci in zip(gi_arr, ci_arr):
+            pi = int(candidate_idx[ci])
+            used.add(pi)
+            matched_gt.add(int(gi))
+            dist = float(cost[gi, ci])
+            errors.append({"id": gt_list[gi]["id"], "error_mm": dist,
+                           "matched_pred_id": predicted[pi]["id"],
+                           "shaft": shaft_name})
+            print(f"  GT {gt_list[gi]['id']} → pred E{predicted[pi]['id']}: "
+                  f"{dist:.3f} mm  [{shaft_name}]")
+        for gi, g in enumerate(gt_list):
+            if gi in matched_gt:
+                continue
+            errors.append({"id": g["id"], "error_mm": float("nan"),
+                           "matched_pred_id": None, "shaft": shaft_name})
+            unmatched_gt.append(g["id"])
+            print(f"  GT {g['id']} → (fewer candidates than contacts)  [{shaft_name}]")
+
+    # Restore original GT ordering for the returned per-electrode list.
+    gt_index = {str(g["id"]): k for k, g in enumerate(ground_truth)}
+    errors.sort(key=lambda e: gt_index.get(str(e["id"]), 0))
+
+    valid = [e["error_mm"] for e in errors if not np.isnan(e["error_mm"])]
+    mean_err = float(np.mean(valid)) if valid else float("nan")
+    max_err  = float(np.max(valid))  if valid else float("nan")
+    print(f"\nMean Euclidean Error : {mean_err:.3f} mm  (target < 2.0 mm)")
+    print(f"Max  Euclidean Error : {max_err:.3f} mm")
+    if unmatched_gt:
+        print(f"Unmatched GT contacts: {len(unmatched_gt)} / {len(ground_truth)} "
+              f"({', '.join(unmatched_gt[:10])}{'...' if len(unmatched_gt) > 10 else ''})")
+
+    return {
+        "mean_error_mm": mean_err,
+        "max_error_mm":  max_err,
+        "per_electrode": errors,
+        "unmatched":     len(unmatched_gt),
+        "mode":          "shaft",
+    }
+
+
+def _flat_hungarian(
+    predicted: list[dict],
+    ground_truth: list[dict],
+    pred_coords: np.ndarray,
+    gt_key: str,
+) -> dict:
+    """Fallback used when GT ids don't expose shaft prefixes."""
+    gt_coords = np.array([np.asarray(g[gt_key]) for g in ground_truth])
+    cost = np.linalg.norm(gt_coords[:, None, :] - pred_coords[None, :, :], axis=2)
+    gt_idx, pred_idx = linear_sum_assignment(cost)
+
     errors = []
-    for gt in ground_truth:
-        gt_coord = np.asarray(gt[gt_key])
-        dists = np.linalg.norm(pred_coords - gt_coord, axis=1)
-        nearest_idx = int(np.argmin(dists))
-        dist = float(dists[nearest_idx])
+    for gi, pi in zip(gt_idx, pred_idx):
+        dist = float(cost[gi, pi])
         errors.append({
-            "id": gt["id"],
+            "id": ground_truth[gi]["id"],
             "error_mm": dist,
-            "matched_pred_id": predicted[nearest_idx]["id"],
+            "matched_pred_id": predicted[pi]["id"],
         })
-        print(f"  GT {gt['id']} → pred E{predicted[nearest_idx]['id']}: {dist:.3f} mm")
+        print(f"  GT {ground_truth[gi]['id']} → pred E{predicted[pi]['id']}: {dist:.3f} mm")
 
     mean_err = float(np.mean([e["error_mm"] for e in errors]))
     max_err  = float(np.max([e["error_mm"] for e in errors]))
     print(f"\nMean Euclidean Error : {mean_err:.3f} mm  (target < 2.0 mm)")
     print(f"Max  Euclidean Error : {max_err:.3f} mm")
 
-    return {"mean_error_mm": mean_err, "max_error_mm": max_err, "per_electrode": errors}
+    return {"mean_error_mm": mean_err, "max_error_mm": max_err,
+            "per_electrode": errors, "unmatched": 0, "mode": "hungarian"}
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-.PHONY: install install-dev install-desktop test run data data-ds004473 viewer desktop ports help
+.PHONY: install install-dev install-desktop test run run-ds004473 validate-ds004473 data data-ds004473 viewer desktop ports help
 
 VENV    := .venv
 PYTHON  := $(VENV)/bin/python
@@ -16,6 +16,7 @@ help:
 	@echo "  make test             Run the test suite"
 	@echo "  make run              Run pipeline + export viewer data (set MRI=, CT=, SUBJECT_DIR=)"
 	@echo "  make run-ds004473     Run pipeline on ds004473 sub-12 (one-line shortcut)"
+	@echo "  make validate-ds004473 Run full CT pipeline + shaft-aware validation against ds004473 GT"
 	@echo "  make viewer           Serve the viewer over loopback HTTP (open in browser)"
 	@echo "  make desktop          Open the viewer in a native desktop window"
 	@echo "  make ports            List all TCP ports currently in LISTEN state"
@@ -111,3 +112,17 @@ run-ds004473: $(VENV)/bin/activate
 	  --subject-dir data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12 \
 	  --use-ground-truth data/raw/ds004473/sub-12/ieeg/sub-12_space-ACPC_electrodes.tsv \
 	  --plot --export-viewer --output-dir outputs/
+
+# Validation run: detect electrodes from CT and score them against the
+# clinically-verified ScanRAS positions using the shaft-aware matcher
+# (PCA axis fit per shaft, Hungarian assignment within shaft, no predicted
+# claimed twice). The GT here is the ScanRAS file because the predicted
+# coordinate used for scoring (`centroid_scanner_mm`) lives in T1w ScanRAS.
+validate-ds004473: $(VENV)/bin/activate
+	SSL_CERT_FILE=$(CERT_FILE) REQUESTS_CA_BUNDLE=$(CERT_FILE) \
+	$(PYTHON) main.py \
+	  --mri data/raw/ds004473/sub-12/anat/sub-12_T1w.nii.gz \
+	  --ct  data/raw/ds004473/sub-12/anat/sub-12_ct.nii.gz \
+	  --subject-dir data/raw/ds004473/derivatives/freesurfer-7.3.2/sub-12 \
+	  --validate data/raw/ds004473/sub-12/ieeg/sub-12_space-ScanRAS_electrodes.tsv \
+	  --output-dir outputs/sub-12-validated

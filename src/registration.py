@@ -28,6 +28,8 @@ def register_ct_to_mri(
     ct_img: nib.Nifti1Image,
     nbins: int = 32,
     sampling_proportion: float = 0.3,
+    ct_clip: tuple[float, float] = (-100.0, 200.0),
+    starting_affine: np.ndarray | None = None,
 ) -> tuple[nib.Nifti1Image, np.ndarray]:
     """
     Rigid-body registration of CT onto MRI using Mutual Information.
@@ -36,6 +38,11 @@ def register_ct_to_mri(
         mri_img:  Pre-operative T1w MRI (full image — not brain-masked;
                   masking zeros out valid tissue and confuses MI).
         ct_img:   Post-operative CT (full HU range).
+        ct_clip:  (lo, hi) HU window applied to the CT before MI. Defaults
+                  to a soft-tissue window. Widen towards bone (e.g.
+                  (-100, 1500)) if the residual rigid error is too large —
+                  the skull outline is the most informative CT/MRI common
+                  feature.
 
     Returns:
         transformed_ct:   CT resampled into MRI space (NIfTI, same grid).
@@ -46,10 +53,8 @@ def register_ct_to_mri(
     mri_affine = mri_img.affine
     ct_affine  = ct_img.affine
 
-    # Soft-tissue window for the registration step only.
-    # Bone and metal (>200 HU) dominate the histogram and mislead MI;
-    # electrode contacts will still be detected from the original ct_data.
-    ct_reg = np.clip(ct_data, -100.0, 200.0)
+    ct_reg = np.clip(ct_data, ct_clip[0], ct_clip[1])
+    print(f"  CT clipped to HU window {ct_clip} for MI")
 
     metric = MutualInformationMetric(nbins=nbins, sampling_proportion=sampling_proportion)
 
@@ -65,18 +70,24 @@ def register_ct_to_mri(
 
     print("Running rigid CT-to-MRI registration (Mutual Information)...")
 
-    # ── Step 1: Centers-of-mass pre-alignment ──────────────────────────────
-    # The CT and MRI scanner origins often differ by ~100 mm; starting from
-    # identity with that offset makes the MI optimizer diverge.
-    c_of_mass = transform_centers_of_mass(
-        static=mri_data,
-        static_grid2world=mri_affine,
-        moving=ct_reg,
-        moving_grid2world=ct_affine,
-    )
-    print(f"  COM pre-alignment translation: {c_of_mass.affine[:3, 3].round(1)} mm")
+    # ── Step 1: Determine starting affine ─────────────────────────────────
+    # By default we use a centres-of-mass pre-alignment (CT and MRI scanner
+    # origins often differ by ~100 mm; starting from identity diverges).
+    # Callers may inject a better-informed start (e.g. an electrode-cloud
+    # landmark alignment) to escape MI local minima.
+    if starting_affine is None:
+        c_of_mass = transform_centers_of_mass(
+            static=mri_data,
+            static_grid2world=mri_affine,
+            moving=ct_reg,
+            moving_grid2world=ct_affine,
+        )
+        starting_affine = c_of_mass.affine
+        print(f"  COM pre-alignment translation: {starting_affine[:3, 3].round(1)} mm")
+    else:
+        print(f"  Caller-supplied starting affine, translation: {starting_affine[:3, 3].round(1)} mm")
 
-    # ── Step 2: Rigid MI registration from COM starting point ──────────────
+    # ── Step 2: Rigid MI registration from chosen starting point ──────────
     mapping = affreg.optimize(
         static=mri_data,
         moving=ct_reg,
@@ -84,7 +95,7 @@ def register_ct_to_mri(
         params0=None,
         static_grid2world=mri_affine,
         moving_grid2world=ct_affine,
-        starting_affine=c_of_mass.affine,
+        starting_affine=starting_affine,
     )
 
     # Resample full-range CT (not windowed) into MRI space for saving
