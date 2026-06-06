@@ -141,7 +141,7 @@ make install-dev       Also install pytest and dev tools
 make install-desktop   Also install pywebview (for native window)
 make data              Download MNE sample sEEG dataset (~25 MB, smoke-test only)
 make data-ds004473     Download ds004473 sub-12 from OpenNeuro (~75 MB)
-make test              Run the test suite (79 tests, ~3 s, no data required)
+make test              Run the test suite (104 tests, ~8 s, no data required)
 make run-ds004473      Run pipeline on ds004473 sub-12 (recommended)
 make run MRI=… CT=… SUBJECT_DIR=…   Run pipeline on any dataset (see docs/TESTING_GUIDE.md)
 make viewer            Serve the viewer at http://localhost:8765/
@@ -182,17 +182,19 @@ A native window opens using `WKWebView` (macOS), `Edge WebView2` (Windows), or `
 make test
 ```
 
-All 79 tests use synthetic data — no dataset download, no network access required.
+All 104 tests use synthetic data — no dataset download, no network access required.
 
 | File | Coverage | Tests |
 |---|---|---|
-| `test_loader.py` | NIfTI I/O + brain masking | 4 |
-| `test_registration.py` | CT → MRI rigid registration | 2 |
-| `test_segmentation.py` | Electrode detection | 3 |
-| `test_labeling.py` | BA + ASEG labelling | 35 |
+| `test_loader.py` | NIfTI I/O + brain masking | 3 |
+| `test_registration.py` | CT → MRI rigid registration | 3 |
+| `test_segmentation.py` | Electrode detection + brain-shift | 8 |
+| `test_labeling.py` | BA + ASEG labelling + shaft-aware validation | 37 |
 | `test_visualization.py` | 3D visualization | 2 |
-| `test_export_viewer.py` | Viewer data export | 33 |
-| **Total** | | **79** |
+| `test_export_viewer.py` | Viewer data export (incl. lobe codes) | 36 |
+| `test_ground_truth.py` | BIDS GT loading + frame/units detection | 8 |
+| `test_dev_server.py` | Local dev HTTP server | 7 |
+| **Total** | | **104** |
 
 CI runs on every push across Python 3.11, 3.12, 3.13 on Ubuntu and 3.13 on macOS.
 
@@ -295,9 +297,10 @@ NeuroElectroMap/
 
 ## Known limitations
 
-- The HU > 3000 segmentation can pick up cables, connectors, and partial-volume artifacts in the post-op CT. On ds004473 sub-12 about half of the 228 detected contacts are likely real; the rest land outside the segmented brain volume and surface in the viewer's "Unknown" pool with an explanatory note. `make run-ds004473` bypasses this by using the dataset's verified ground-truth positions directly.
-- `correct_brain_shift` snaps centroids to the nearest pial vertex. For depth (sEEG) electrodes this gives a cortical entry point, not the contact's true depth. Brodmann is still meaningful (the trajectory's nearest cortical area); ASEG is the ground truth for subcortical contacts.
-- The 2D schematic is anatomically simplified (10 lobes / sub-regions). Electrode placement within a region is a deterministic scatter, not a real projection — use the 3D view for accurate localisation.
+- HU > 3000 + 3D connected-component segmentation still picks up cables, connectors, and partial-volume artifacts in the post-op CT. The size + elongation filters drop the obvious ones (~87 of 300 components on ds004473 sub-12) but the remaining ~213 candidates still include some non-anatomical pieces. `make run-ds004473` bypasses this entirely by running with `--use-ground-truth` against the dataset's verified electrode positions.
+- The rigid Mutual-Information CT→MRI registration has a known residual on certain CT modalities — most prominently intra-operative O-arm CTs — that the validation matcher exposes as a high mean error on patient sub-12. This is *not* a matching bug: the shaft-aware matcher (`src/labeling.compute_euclidean_error`) reconstructs anatomically correct contact pairings, but the registration places whole shafts ~15–40 mm from their true position. Full diagnosis and the proposed `bbregister` fix path are documented in [`docs/VALIDATION_FINDINGS.md`](docs/VALIDATION_FINDINGS.md).
+- `correct_brain_shift` snaps centroids to the nearest pial vertex. For depth (sEEG) electrodes this gives a cortical entry point, not the contact's true depth. Brodmann labels remain meaningful (the trajectory's nearest cortical area); ASEG is the ground truth for subcortical contacts.
+- The 2D schematic is anatomically simplified (10 lobes / sub-regions). Electrode placement within a region is a deterministic scatter, not a true projection — use the 3D view for accurate localisation.
 
 ---
 
