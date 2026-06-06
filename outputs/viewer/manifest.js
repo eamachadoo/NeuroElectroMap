@@ -7,7 +7,7 @@ window.NEM_MANIFEST = {
       "n_electrodes": 119,
       "n_regions": 10,
       "data_url": "sub-1/data.json",
-      "processed_at": "2026-06-02T15:01:04+00:00"
+      "processed_at": "2026-06-03T06:01:51+00:00"
     },
     {
       "id": "sub-12",
@@ -15,7 +15,7 @@ window.NEM_MANIFEST = {
       "n_electrodes": 119,
       "n_regions": 10,
       "data_url": "sub-12/data.json",
-      "processed_at": "2026-06-02T15:01:20+00:00"
+      "processed_at": "2026-06-03T06:28:06+00:00"
     },
     {
       "id": "sub-2",
@@ -23,8 +23,8 @@ window.NEM_MANIFEST = {
       "n_electrodes": 121,
       "n_regions": 10,
       "data_url": "sub-2/data.json",
-      "processed_at": "2026-06-02T15:01:11+00:00"
+      "processed_at": "2026-06-03T06:01:51+00:00"
     }
   ],
-  "refreshed_at": "2026-06-02T15:01:20+00:00"
+  "refreshed_at": "2026-06-03T06:28:06+00:00"
 };

@@ -38,15 +38,24 @@ function _resolveThemeColors() {
   };
 }
 
-/* Per-vertex colour array from BA labels.
- * BA 0 (vast majority of cortex) → neutral cortex colour from the theme. */
-function _buildVertexColors(baLabels, regions, fallback) {
+/* Per-vertex colour array.
+ *  1. Specific BA known + we have data for it → BA colour from `regions`.
+ *  2. Else, vertex has a Desikan-Killiany lobe (frontal/temporal/...) →
+ *     lobe colour from `lobePalette`, matching the 2D schematic so the
+ *     two views read as the same atlas.
+ *  3. Else → neutral cortex colour from the theme. */
+function _buildVertexColors(baLabels, lobeCodes, lobePalette, regions, fallback) {
   const colorByBA = {};
   Object.values(regions).forEach((r) => { colorByBA[r.ba] = r.color; });
   const out = new Array(baLabels.length);
   for (let i = 0; i < baLabels.length; i++) {
     const ba = baLabels[i];
-    out[i] = (ba && colorByBA[ba]) || fallback;
+    if (ba && colorByBA[ba]) {
+      out[i] = colorByBA[ba];
+      continue;
+    }
+    const lobeIdx = lobeCodes ? lobeCodes[i] : 0;
+    out[i] = (lobeIdx && lobePalette && lobePalette[lobeIdx]) || fallback;
   }
   return out;
 }
@@ -82,10 +91,18 @@ function Brain3D(props) {
   // BAs pop, darker than ink so it doesn't visually compete with electrodes).
   const cortexFallback = theme === "dark" ? "#5a6878" : "#cdd5e0";
 
-  /* Per-vertex colour arrays — computed once per mesh / theme change. */
+  /* Per-vertex colour arrays — computed once per mesh / theme change.
+   * `lobe_codes` and `lobe_palette` are absent in older bundles; in that
+   * case `_buildVertexColors` simply falls through to the cortex grey. */
   const vertexColors = _b3dMemo(() => ({
-    lh: _buildVertexColors(data.mesh.lh.ba_labels, data.regions, cortexFallback),
-    rh: _buildVertexColors(data.mesh.rh.ba_labels, data.regions, cortexFallback),
+    lh: _buildVertexColors(
+      data.mesh.lh.ba_labels, data.mesh.lh.lobe_codes,
+      data.mesh.lobe_palette, data.regions, cortexFallback
+    ),
+    rh: _buildVertexColors(
+      data.mesh.rh.ba_labels, data.mesh.rh.lobe_codes,
+      data.mesh.lobe_palette, data.regions, cortexFallback
+    ),
   }), [data, cortexFallback]);
 
   /* Mesh traces — built once per data load. */

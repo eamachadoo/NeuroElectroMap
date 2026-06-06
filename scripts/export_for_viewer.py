@@ -113,6 +113,30 @@ _DK_TO_SCHEMATIC: dict[str, str | None] = {
     "insula":                   None,
 }
 
+# Per-vertex schematic palette used by the 3D mesh fallback so the cortex
+# carries the same lobe colours as the 2D schematic even where the
+# BA_exvivo atlas has no label. Index 0 is reserved for "no lobe" so the
+# viewer can fall back to its neutral cortex colour.
+#
+# The colours mirror NEM_SCHEMATIC[*].default_color in viewer/regions.js
+# and BA_GROUPS above; if you change a colour, change all three.
+SCHEMATIC_PALETTE: list[tuple[str, str]] = [
+    ("",                  ""),        # 0 = none
+    ("frontal",           "#6E93C8"),
+    ("parietal",          "#E0A94E"),
+    ("occipital",         "#D86C5A"),
+    ("temporal",          "#9B7BC4"),
+    ("precentral",        "#3FA39A"),
+    ("postcentral",       "#5FA86F"),
+    ("superior-temporal", "#B79AD6"),
+    ("broca",             "#E0789B"),
+    ("supramarginal",     "#E8B96B"),
+    ("angular",           "#C98A5A"),
+]
+_SCHEMATIC_ID_TO_CODE: dict[str, int] = {
+    sid: i for i, (sid, _) in enumerate(SCHEMATIC_PALETTE) if sid
+}
+
 
 def _schematic_id_from_aseg_label(aseg_label: str) -> str | None:
     """Derive a schematic region id from a Desikan-Killiany label like
@@ -135,6 +159,28 @@ def _annot_name_to_ba(name: str) -> int:
         return int(m.group(1))
     prefix = re.match(r"([A-Za-z0-9]+)_?exvivo", name)
     return _EXVIVO_MAP.get(prefix.group(1) if prefix else "", 0)
+
+
+def annot_to_lobe_codes(annot_labels: np.ndarray, annot_names: list) -> np.ndarray:
+    """Convert per-vertex aparc (DK) annotation indices to schematic palette codes.
+
+    Maps each annot index → DK parcel name → schematic_id via
+    `_DK_TO_SCHEMATIC` → integer code into `SCHEMATIC_PALETTE`.
+    Returns 0 for vertices whose parcel has no schematic mapping (insula,
+    unknown, corpuscallosum, etc.) — the viewer treats 0 as "no lobe
+    colour, use cortex fallback".
+    """
+    name_to_code: dict[int, int] = {}
+    for i, name in enumerate(annot_names):
+        nm = name.decode() if isinstance(name, bytes) else name
+        sid = _DK_TO_SCHEMATIC.get(nm)
+        name_to_code[i] = _SCHEMATIC_ID_TO_CODE.get(sid, 0) if sid else 0
+
+    out = np.zeros(len(annot_labels), dtype=int)
+    for i, lbl in enumerate(annot_labels):
+        if 0 <= int(lbl) < len(annot_names):
+            out[i] = name_to_code.get(int(lbl), 0)
+    return out
 
 
 def annot_to_ba_array(annot_labels: np.ndarray, annot_names: list) -> np.ndarray:
@@ -166,25 +212,29 @@ def annot_to_ba_array(annot_labels: np.ndarray, annot_names: list) -> np.ndarray
 def _decimate_with_labels(
     verts: np.ndarray,
     faces: np.ndarray,
-    labels: np.ndarray,
+    label_arrays: list[np.ndarray],
     target_reduction: float,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, list[np.ndarray]]:
     """Decimate a triangular mesh while preserving per-vertex categorical labels.
 
-    Decimation merges vertices, which would average BA integer labels and break
-    the parcellation. We instead re-attach labels to the decimated mesh via
-    nearest-neighbour lookup on the original vertices.
+    Decimation merges vertices, which would average integer labels and break
+    any parcellation. We instead re-attach every label array to the
+    decimated mesh via a single nearest-neighbour lookup on the original
+    vertices.
+
+    `label_arrays` is a list of arrays so callers can re-label several
+    parcellations (BA + lobe + …) without paying for two decimation passes.
 
     Falls back to the original mesh if `pyvista` is not installed.
     """
     if target_reduction <= 0:
-        return verts, faces, labels
+        return verts, faces, list(label_arrays)
 
     try:
         import pyvista as pv
     except ImportError:
         print("[WARNING] pyvista not installed — skipping mesh decimation.")
-        return verts, faces, labels
+        return verts, faces, list(label_arrays)
 
     faces_pv = np.hstack(
         [np.full((len(faces), 1), 3, dtype=np.int64), faces.astype(np.int64)]
@@ -197,7 +247,7 @@ def _decimate_with_labels(
 
     from scipy.spatial import cKDTree
     _, nn_idx = cKDTree(verts).query(new_verts)
-    new_labels = labels[nn_idx]
+    new_labels = [labels[nn_idx] for labels in label_arrays]
     return new_verts, new_faces, new_labels
 
 
@@ -268,14 +318,33 @@ def export_viewer_data(
             "Pass the rh.pial and rh.BA_exvivo.annot from the same subject."
         )
 
+    # ── Per-vertex lobe codes (Desikan-Killiany via aparc.annot) ────────────
+    # Lets the 3D viewer fall back to the 2D-schematic lobe colour wherever
+    # the sparse BA_exvivo atlas has no label — without this the 3D cortex
+    # ends up mostly grey while the 2D schematic is fully coloured.
+    # Aparc lives next to BA_exvivo in <subject>/label/, so we just swap the
+    # filename. If it isn't there we fall back to zeros (viewer uses grey).
+    lh_aparc_path = str(Path(lh_annot_path).with_name("lh.aparc.annot"))
+    rh_aparc_path = str(Path(rh_annot_path).with_name("rh.aparc.annot"))
+    try:
+        lh_aparc_idx, _, lh_aparc_names = fs.read_annot(lh_aparc_path)
+        rh_aparc_idx, _, rh_aparc_names = fs.read_annot(rh_aparc_path)
+        lh_lobe = annot_to_lobe_codes(lh_aparc_idx, lh_aparc_names)
+        rh_lobe = annot_to_lobe_codes(rh_aparc_idx, rh_aparc_names)
+    except FileNotFoundError:
+        print(f"[INFO] aparc.annot not found at {lh_aparc_path}; "
+              "3D cortex lobe-fallback disabled.")
+        lh_lobe = np.zeros(len(lh_verts), dtype=int)
+        rh_lobe = np.zeros(len(rh_verts), dtype=int)
+
     # ── Decimate each hemisphere (labels preserved via NN lookup) ───────────
     print(f"Decimating LH ({len(lh_verts)} verts → ~{int(len(lh_verts)*(1-target_reduction))} verts)...")
-    lh_verts, lh_faces, lh_ba = _decimate_with_labels(
-        lh_verts, lh_faces, lh_ba, target_reduction)
+    lh_verts, lh_faces, (lh_ba, lh_lobe) = _decimate_with_labels(
+        lh_verts, lh_faces, [lh_ba, lh_lobe], target_reduction)
 
     print(f"Decimating RH ({len(rh_verts)} verts → ~{int(len(rh_verts)*(1-target_reduction))} verts)...")
-    rh_verts, rh_faces, rh_ba = _decimate_with_labels(
-        rh_verts, rh_faces, rh_ba, target_reduction)
+    rh_verts, rh_faces, (rh_ba, rh_lobe) = _decimate_with_labels(
+        rh_verts, rh_faces, [rh_ba, rh_lobe], target_reduction)
 
     # ── Electrodes (only the fields the viewer needs) ───────────────────────
     # `mni_mm` is exported even though the current single-patient UI doesn't
@@ -340,19 +409,26 @@ def export_viewer_data(
         }
 
     # ── Assemble + write ────────────────────────────────────────────────────
+    # `lobe_palette` is a flat list of hex colours indexed by `lobe_codes`;
+    # index 0 is null so the viewer can distinguish "no lobe" from "lobe 0".
+    lobe_palette = [None] + [color for _, color in SCHEMATIC_PALETTE[1:]]
+
     data = {
         "patient_id": patient_id,
         "mesh": {
             "lh": {
-                "vertices":  [[round(float(v), 2) for v in row] for row in lh_verts],
-                "faces":     [[int(i) for i in row] for row in lh_faces],
-                "ba_labels": [int(b) for b in lh_ba],
+                "vertices":   [[round(float(v), 2) for v in row] for row in lh_verts],
+                "faces":      [[int(i) for i in row] for row in lh_faces],
+                "ba_labels":  [int(b) for b in lh_ba],
+                "lobe_codes": [int(l) for l in lh_lobe],
             },
             "rh": {
-                "vertices":  [[round(float(v), 2) for v in row] for row in rh_verts],
-                "faces":     [[int(i) for i in row] for row in rh_faces],
-                "ba_labels": [int(b) for b in rh_ba],
+                "vertices":   [[round(float(v), 2) for v in row] for row in rh_verts],
+                "faces":      [[int(i) for i in row] for row in rh_faces],
+                "ba_labels":  [int(b) for b in rh_ba],
+                "lobe_codes": [int(l) for l in rh_lobe],
             },
+            "lobe_palette": lobe_palette,
         },
         "electrodes": elec_out,
         "regions":    regions_out,
