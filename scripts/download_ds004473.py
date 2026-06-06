@@ -44,6 +44,12 @@ def files_for_subject(sub: str) -> list[str]:
         f"{fs}/surf/rh.pial",
         f"{fs}/label/lh.BA_exvivo.annot",
         f"{fs}/label/rh.BA_exvivo.annot",
+        # Desikan-Killiany surface parcellation — drives the per-vertex
+        # lobe colouring in the 3D viewer so the cortex carries the same
+        # lobe tints as the 2D schematic, even on vertices where the
+        # sparse BA_exvivo atlas has no label.
+        f"{fs}/label/lh.aparc.annot",
+        f"{fs}/label/rh.aparc.annot",
         # Desikan-Killiany + ASEG — labels every electrode, including deep /
         # subcortical / white-matter contacts that BA_exvivo misses.
         f"{fs}/mri/aparc+aseg.mgz",

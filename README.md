@@ -99,6 +99,40 @@ Clicking any electrode in either view opens its detail in the side panel (region
 
 ---
 
+## Testing the pipeline with your own dataset
+
+The five-step quick-start above runs the pipeline on a bundled
+patient (ds004473 sub-12). To run it on **your own T1 + CT** instead,
+the command is:
+
+```bash
+make run \
+  MRI=/path/to/your/T1w.nii.gz \
+  CT=/path/to/your/post_op_CT.nii.gz \
+  SUBJECT_DIR=/path/to/freesurfer/subjects/patient_id
+```
+
+The pipeline needs a **FreeSurfer reconstruction of the same T1**
+(specifically the pial surfaces, `BA_exvivo.annot`, `aparc.annot`,
+`aparc+aseg.mgz`, and `talairach.xfm`). If you have those files,
+~1–2 minutes per patient. If you do not, the standard `recon-all`
+takes 6–12 hours on CPU; FastSurfer is a documented faster
+alternative.
+
+A full walk-through — required files, exact directory layout,
+ground-truth validation, expected runtime, how to read the outputs,
+and the four most common failure modes with concrete fixes — lives
+in **[`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md)**. Read that
+before running against your own data; it answers every "what does
+this error mean" question we have hit so far.
+
+For the design rationale behind each pipeline step and the
+investigation that produced the current validation numbers, see
+[`docs/PIPELINE_DESIGN.md`](docs/PIPELINE_DESIGN.md) and
+[`docs/VALIDATION_FINDINGS.md`](docs/VALIDATION_FINDINGS.md).
+
+---
+
 ## All make targets
 
 ```
@@ -109,7 +143,7 @@ make data              Download MNE sample sEEG dataset (~25 MB, smoke-test only
 make data-ds004473     Download ds004473 sub-12 from OpenNeuro (~75 MB)
 make test              Run the test suite (79 tests, ~3 s, no data required)
 make run-ds004473      Run pipeline on ds004473 sub-12 (recommended)
-make run MRI=… CT=… SUBJECT_DIR=…   Run pipeline on any dataset
+make run MRI=… CT=… SUBJECT_DIR=…   Run pipeline on any dataset (see docs/TESTING_GUIDE.md)
 make viewer            Serve the viewer at http://localhost:8765/
 make desktop           Open the viewer in a native desktop window (needs install-desktop)
 make ports             List all TCP ports currently in LISTEN state
@@ -247,6 +281,11 @@ NeuroElectroMap/
 │   └── regions.js              Static metadata (BA names, schematic paths)
 │
 ├── tests/                      79 pytest tests (synthetic data, no datasets)
+│
+├── docs/
+│   ├── TESTING_GUIDE.md        How to run on your own dataset (read this first)
+│   ├── PIPELINE_DESIGN.md      Design rationale per step (clinical + technical)
+│   └── VALIDATION_FINDINGS.md  Investigation of the registration residual
 │
 ├── data/                       Input NIfTI / FreeSurfer (git-ignored)
 └── outputs/                    Pipeline outputs (git-ignored)
